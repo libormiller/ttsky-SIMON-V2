@@ -1,0 +1,10 @@
+magic
+tech sky130A
+timestamp 1787148930
+<< checkpaint >>
+rect -630 -630 4751 3290
+use DAC  x1
+timestamp 1786986747
+transform 1 0 -950 0 1 1410
+box 950 -1410 5071 1250
+<< end >>
