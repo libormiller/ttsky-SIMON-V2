@@ -9,3 +9,9 @@ test/sim_build
 test/__pycache__/
 test/results.xml
 test/gate_level_netlist.v
+*.fst
+*.fst.hier
+src/user_config.json
+src/config_merged.json
+tt
+.venv
