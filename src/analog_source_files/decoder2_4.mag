@@ -1,7 +1,7 @@
 magic
 tech sky130A
 magscale 1 2
-timestamp 1787477667
+timestamp 1787488317
 << nwell >>
 rect 3010 -240 3020 -200
 rect 3080 -240 3090 -200
@@ -9,7 +9,9 @@ rect 1050 -1280 1240 -1180
 rect 1040 -1390 1240 -1280
 rect 1020 -1440 1240 -1390
 << pwell >>
-rect 960 -690 3180 -550
+rect 960 -676 3180 -550
+rect 834 -690 3180 -676
+rect 834 -836 1024 -690
 rect 3310 -930 3530 -630
 << psubdiff >>
 rect 3350 -810 3480 -780
@@ -84,28 +86,14 @@ rect 819 -1036 855 -986
 rect 960 -1060 1000 -1026
 rect 2505 -1368 2539 -1330
 << metal1 >>
-rect 1200 12 1400 200
-rect 1200 6 1406 12
-rect 1200 0 1354 6
-rect 1800 10 2000 200
-rect 2400 30 2600 200
-rect 3000 40 3200 200
-rect 2400 16 2620 30
-rect 2158 10 2164 16
-rect 1800 0 2164 10
-rect 1960 -30 2164 0
-rect 2158 -36 2164 -30
-rect 2216 -36 2222 16
-rect 2400 0 2554 16
-rect 2540 -36 2554 0
-rect 2606 -36 2620 16
-rect 3000 26 3280 40
-rect 3000 0 3224 26
-rect 3160 -20 3224 0
-rect 3218 -26 3224 -20
-rect 3276 -26 3282 26
-rect 1354 -52 1406 -46
-rect 2540 -50 2620 -36
+rect 1598 -82 1604 -30
+rect 1656 -82 1662 -30
+rect 2158 -82 2164 -30
+rect 2216 -82 2222 -30
+rect 2828 -72 2834 -20
+rect 2886 -72 2892 -20
+rect 3218 -72 3224 -20
+rect 3276 -72 3282 -20
 rect 1060 -220 1160 -120
 rect 1680 -220 1780 -120
 rect 2300 -220 2400 -120
@@ -286,10 +274,10 @@ rect 2400 -1400 2600 -1368
 rect 3200 -1251 3411 -1200
 rect 3200 -1400 3400 -1251
 << via1 >>
-rect 1354 -46 1406 6
-rect 2164 -36 2216 16
-rect 2554 -36 2606 16
-rect 3224 -26 3276 26
+rect 1604 -82 1656 -30
+rect 2164 -82 2216 -30
+rect 2834 -72 2886 -20
+rect 3224 -72 3276 -20
 rect 3385 -195 3455 -125
 rect 1044 -306 1096 -254
 rect 2204 -326 2256 -274
@@ -335,32 +323,26 @@ rect 2440 -1360 2505 -1330
 rect 2505 -1360 2539 -1330
 rect 2539 -1360 2560 -1330
 << metal2 >>
-rect 2164 16 2216 22
-rect 1348 -46 1354 6
-rect 1406 0 1412 6
-rect 1406 -40 1650 0
-rect 1406 -46 1412 -40
+rect 2834 -20 2886 -14
+rect 1604 -30 1656 -24
+rect 1604 -88 1656 -82
+rect 2164 -30 2216 -24
+rect 2834 -78 2886 -72
+rect 3224 -20 3276 -14
+rect 3224 -78 3276 -72
+rect 2164 -88 2216 -82
 rect 1038 -260 1044 -254
 rect 780 -300 1044 -260
 rect 780 -960 820 -300
 rect 1038 -306 1044 -300
 rect 1096 -306 1102 -254
-rect 1610 -344 1650 -40
-rect 2164 -42 2216 -36
-rect 2540 16 2620 30
-rect 2540 -36 2554 16
-rect 2606 10 2620 16
-rect 3224 26 3276 32
-rect 2606 -30 2880 10
-rect 2606 -36 2620 -30
-rect 2170 -268 2210 -42
-rect 2540 -50 2620 -36
+rect 1610 -344 1650 -88
+rect 2170 -268 2210 -88
 rect 2170 -274 2256 -268
 rect 2170 -320 2204 -274
 rect 2438 -306 2444 -254
 rect 2496 -306 2502 -254
-rect 2840 -258 2880 -30
-rect 3224 -32 3276 -26
+rect 2840 -258 2880 -78
 rect 3114 -244 3166 -238
 rect 2834 -264 2886 -258
 rect 2204 -332 2256 -326
@@ -406,7 +388,7 @@ rect 2438 -956 2444 -904
 rect 2496 -956 2502 -904
 rect 2950 -990 2990 -536
 rect 3122 -898 3158 -302
-rect 3230 -348 3270 -32
+rect 3230 -348 3270 -78
 rect 3385 -125 3455 -119
 rect 3224 -354 3276 -348
 rect 3224 -412 3276 -406
@@ -445,7 +427,7 @@ rect 2400 -1360 2440 -1240
 rect 2560 -1295 3455 -1240
 rect 2560 -1360 2600 -1295
 rect 2400 -1400 2600 -1360
-use sky130_fd_sc_hd__and3_2  x1 pdks/sky130A/libs.ref/sky130_fd_sc_hd/mag
+use sky130_fd_sc_hd__and3_2  x1 $PDKPATH/libs.ref/sky130_fd_sc_hd/mag
 timestamp 1781848803
 transform 1 0 1138 0 1 -712
 box -38 -48 590 592
@@ -461,7 +443,7 @@ use sky130_fd_sc_hd__and3_2  x4
 timestamp 1781848803
 transform 1 0 2978 0 1 -712
 box -38 -48 590 592
-use sky130_fd_sc_hd__inv_1  x5 pdks/sky130A/libs.ref/sky130_fd_sc_hd/mag
+use sky130_fd_sc_hd__inv_1  x5 $PDKPATH/libs.ref/sky130_fd_sc_hd/mag
 timestamp 1781848803
 transform -1 0 1064 0 -1 -808
 box -38 -48 314 592
@@ -470,14 +452,6 @@ timestamp 1781848803
 transform 1 0 788 0 1 -712
 box -38 -48 314 592
 << labels >>
-flabel metal1 1200 0 1400 200 0 FreeSans 1600 0 0 0 Y1
-port 2 nsew
-flabel metal1 1800 0 2000 200 0 FreeSans 1600 0 0 0 Y2
-port 3 nsew
-flabel metal1 2400 0 2600 200 0 FreeSans 1600 0 0 0 Y3
-port 4 nsew
-flabel metal1 3000 0 3200 200 0 FreeSans 1600 0 0 0 Y4
-port 5 nsew
 flabel metal1 2000 -1400 2200 -1200 0 FreeSans 1600 0 0 0 E
 port 6 nsew
 flabel metal1 2400 -1400 2505 -1200 0 FreeSans 1600 0 0 0 VDD
@@ -488,4 +462,12 @@ flabel metal1 1600 -1400 1800 -1200 0 FreeSans 1600 0 0 0 B
 port 1 nsew
 flabel metal1 1200 -1400 1400 -1200 0 FreeSans 1600 0 0 0 A
 port 0 nsew
+flabel via1 1604 -76 1648 -32 0 FreeSans 400 0 0 0 Y1
+port 2 nsew
+flabel via1 2164 -76 2208 -32 0 FreeSans 400 0 0 0 Y2
+port 3 nsew
+flabel via1 2834 -66 2878 -22 0 FreeSans 400 0 0 0 Y3
+port 4 nsew
+flabel via1 3224 -66 3268 -22 0 FreeSans 400 0 0 0 Y4
+port 5 nsew
 << end >>

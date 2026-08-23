@@ -17,11 +17,10 @@ N 610 -440 610 -390 {lab=B}
 N -180 -10 -150 -10 {lab=VDD}
 N -180 -30 -150 -30 {lab=B}
 N -180 -50 -150 -50 {lab=A}
-N 150 -50 190 -50 {lab=Y1}
+N 150 -50 320 -50 {lab=Y1}
 N 150 -30 190 -30 {lab=Y2}
 N 150 -10 190 -10 {lab=Y3}
 N 150 10 190 10 {lab=Y4}
-C {2-4-decoder.sym} 0 0 0 0 {name=x1}
 C {vsource.sym} 490 -140 0 0 {name=V1 value=1.8 savecurrent=false}
 C {lab_pin.sym} 490 -220 1 0 {name=p1 sig_type=std_logic lab=VDD}
 C {gnd.sym} 490 -50 0 0 {name=l2 lab=0}
@@ -37,7 +36,7 @@ C {gnd.sym} 610 -270 0 0 {name=l4 lab=0}
 C {lab_pin.sym} -180 -10 0 0 {name=p3 sig_type=std_logic lab=VDD}
 C {lab_pin.sym} -180 -50 0 0 {name=p4 sig_type=std_logic lab=A}
 C {lab_pin.sym} -180 -30 0 0 {name=p5 sig_type=std_logic lab=B}
-C {lab_pin.sym} 190 -50 2 0 {name=p6 sig_type=std_logic lab=Y1}
+C {lab_pin.sym} 320 -50 2 0 {name=p6 sig_type=std_logic lab=Y1}
 C {lab_pin.sym} 190 -30 2 0 {name=p9 sig_type=std_logic lab=Y2}
 C {lab_pin.sym} 190 -10 2 0 {name=p10 sig_type=std_logic lab=Y3}
 C {lab_pin.sym} 190 10 2 0 {name=p11 sig_type=std_logic lab=Y4}
@@ -55,3 +54,4 @@ value="
   write 2-4-decoder.raw
 .endc
 "}
+C {decoder2_4.sym} 0 0 0 0 {name=x1}

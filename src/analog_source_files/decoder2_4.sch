@@ -52,5 +52,3 @@ C {iopin.sym} -250 450 2 0 {name=p8 lab=VDD}
 C {iopin.sym} -250 480 2 0 {name=p9 lab=GND}
 C {lab_pin.sym} -200 450 2 0 {name=p10 sig_type=std_logic lab=VDD}
 C {lab_pin.sym} -200 480 2 0 {name=p11 sig_type=std_logic lab=GND}
-C {code_shown.sym} 280 -100 0 0 {name=s1 only_toplevel=false value=".include /foss/pdks/sky130A/libs.ref/sky130_fd_sc_hd/spice/sky130_fd_sc_hd.spice
-"}
