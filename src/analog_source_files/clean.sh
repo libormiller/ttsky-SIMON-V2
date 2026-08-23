@@ -7,7 +7,7 @@ files_to_delete=()
 for file in *; do
     if [ -f "$file" ]; then
         case "$file" in
-            *.sch|*.sym|*.mag|*.sh)
+            *.sch|*.sym|*.mag|*.sh|*.lef|*.gds)
                 # Tyto přípony přeskočit
                 ;;
             *)
