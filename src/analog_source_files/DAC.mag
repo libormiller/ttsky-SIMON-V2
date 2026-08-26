@@ -1,7 +1,7 @@
 magic
 tech sky130A
 magscale 1 2
-timestamp 1786986747
+timestamp 1787765167
 << locali >>
 rect 2600 2480 2800 2500
 rect 2600 2330 2630 2480
@@ -307,31 +307,31 @@ rect 3800 -2790 3810 -2720
 rect 3880 -2790 3900 -2720
 rect 3800 -2800 3900 -2790
 use SELECTOR  x1
-timestamp 1786985525
+timestamp 1787765167
 transform 0 -1 4392 1 0 -420
 box 1520 -2030 2690 792
 use SELECTOR  x2
-timestamp 1786985525
+timestamp 1787765167
 transform 0 -1 4392 1 0 -1720
 box 1520 -2030 2690 792
 use SELECTOR  x3
-timestamp 1786985525
+timestamp 1787765167
 transform 0 -1 4392 1 0 -3020
 box 1520 -2030 2690 792
 use SELECTOR  x4
-timestamp 1786985525
+timestamp 1787765167
 transform 0 -1 4392 1 0 -4320
 box 1520 -2030 2690 792
 use SELECTOR  x5
-timestamp 1786985525
+timestamp 1787765167
 transform 0 -1 7592 1 0 -1120
 box 1520 -2030 2690 792
 use SELECTOR  x6
-timestamp 1786985525
+timestamp 1787765167
 transform 0 -1 7592 1 0 -2520
 box 1520 -2030 2690 792
 use SELECTOR  x7
-timestamp 1786985525
+timestamp 1787765167
 transform 0 -1 7592 1 0 -3920
 box 1520 -2030 2690 792
 use sky130_fd_pr__res_xhigh_po_0p35_2T8QPA  XR1

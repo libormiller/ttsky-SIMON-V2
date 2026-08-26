@@ -1,6 +1,6 @@
 magic
 tech sky130A
-timestamp 1786985525
+timestamp 1787765167
 << pwell >>
 rect 1095 -885 1190 -810
 << locali >>
@@ -56,11 +56,11 @@ rect 1095 -985 1120 -975
 rect 1095 -1005 1115 -985
 rect 1055 -1010 1115 -1005
 use transmition-gate  x1
-timestamp 1786983712
+timestamp 1787765167
 transform 1 0 350 0 1 520
 box 500 -720 945 -124
 use transmition-gate  x2
-timestamp 1786983712
+timestamp 1787765167
 transform 1 0 350 0 1 -130
 box 500 -720 945 -124
 use sky130_fd_sc_hd__inv_1  x3 pdks/sky130A/libs.ref/sky130_fd_sc_hd/mag

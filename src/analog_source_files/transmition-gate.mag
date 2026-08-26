@@ -1,7 +1,7 @@
 magic
 tech sky130A
 magscale 1 2
-timestamp 1787486244
+timestamp 1787765167
 << pwell >>
 rect 1730 -1180 1890 -1150
 rect 1660 -1310 1890 -1180
@@ -108,8 +108,8 @@ rect 1000 -1370 1440 -1310
 rect 1500 -1370 1510 -1310
 rect 1000 -1380 1510 -1370
 rect 1420 -1440 1520 -1380
-use sky130_fd_sc_hd__inv_1  x1 $PDKPATH/libs.ref/sky130_fd_sc_hd/mag
-timestamp 1781848803
+use sky130_fd_sc_hd__inv_1  x1 pdks/sky130A/libs.ref/sky130_fd_sc_hd/mag
+timestamp 1784019974
 transform 0 -1 1692 1 0 -1402
 box -38 -48 314 592
 use sky130_fd_pr__pfet_01v8_7HN6Y2  XM2
