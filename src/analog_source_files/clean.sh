@@ -1,32 +1,33 @@
 #!/bin/bash
 
-# Seznam souborů ke smazání
+set -u
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+
 files_to_delete=()
 
-# Projít všechny soubory v aktuální složce (ne adresáře)
-for file in *; do
-    if [ -f "$file" ]; then
-        case "$file" in
+while IFS= read -r -d '' file; do
+    filename=${file##*/}
+    case "$filename" in
             *.sch|*.sym|*.mag|*.sh|*.lef|*.gds)
                 # Tyto přípony přeskočit
                 ;;
             *)
                 files_to_delete+=("$file")
                 ;;
-        esac
-    fi
-done
+    esac
+done < <(find "$SCRIPT_DIR" -maxdepth 1 -type f -print0)
 
-# Kontrola, zda je co mazat
 if [ ${#files_to_delete[@]} -eq 0 ]; then
     echo "Nebyly nalezeny žádné soubory ke smazání."
     exit 0
 fi
 
-# Výpis souborů k potvrzení
 echo "Následující soubory budou SMAZÁNY:"
 echo "-----------------------------------"
-printf '%s\n' "${files_to_delete[@]}"
+for file in "${files_to_delete[@]}"; do
+    printf '%s\n' "${file#"$SCRIPT_DIR"/}"
+done
 echo "-----------------------------------"
 echo "Celkem souborů ke smazání: ${#files_to_delete[@]}"
 echo ""
