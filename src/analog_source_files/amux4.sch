@@ -51,10 +51,10 @@ N 130 -10 220 -10 {lab=#net3}
 N 270 10 290 10 {lab=X2}
 N 270 110 290 110 {lab=X3}
 N 270 220 290 220 {lab=X4}
-C {transmition-gate.sym} 370 -100 0 0 {name=x2}
-C {transmition-gate.sym} 370 10 0 0 {name=x3}
-C {transmition-gate.sym} 370 110 0 0 {name=x4}
-C {transmition-gate.sym} 370 220 0 0 {name=x5}
+C {transmition_gate.sym} 370 -100 0 0 {name=x2}
+C {transmition_gate.sym} 370 10 0 0 {name=x3}
+C {transmition_gate.sym} 370 110 0 0 {name=x4}
+C {transmition_gate.sym} 370 220 0 0 {name=x5}
 C {iopin.sym} -100 160 2 0 {name=p10 lab=VDD}
 C {iopin.sym} -100 190 2 0 {name=p11 lab=GND}
 C {lab_pin.sym} -70 160 2 0 {name=p12 sig_type=std_logic lab=VDD}

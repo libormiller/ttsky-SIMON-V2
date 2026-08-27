@@ -24,7 +24,7 @@ N 120 30 120 40 {lab=0}
 N 140 -30 380 -30 {lab=RO_CLK_OUT}
 N 360 60 360 70 {lab=0}
 N 360 -30 360 -0 {lab=RO_CLK_OUT}
-C {RO-DAC.sym} 0 0 0 0 {name=x1 type=subcircuit primitive=true}
+C {RO_DAC.sym} 0 0 0 0 {name=x1 type=subcircuit primitive=true}
 C {vsource.sym} 140 -410 0 0 {name=V1 value=1.8 savecurrent=false}
 C {gnd.sym} 140 -320 0 0 {name=l2 lab=0}
 C {lab_pin.sym} 140 -490 1 0 {name=p1 sig_type=std_logic lab=VDD}
@@ -50,7 +50,7 @@ simulator=ngspice
 only_toplevel=false 
 value="
 .include /foss/pdks/sky130A/libs.ref/sky130_fd_sc_hd/spice/sky130_fd_sc_hd.spice
-.include /foss/designs/RO-current-starved/RO-DAC_pex.spice
+.include /foss/designs/RO_current_starved/RO_DAC_pex.spice
 .ic v(RO_CLK_OUT) = 0
 .control
   set num_threads=10

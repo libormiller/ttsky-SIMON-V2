@@ -1,7 +1,7 @@
 magic
 tech sky130A
 magscale 1 2
-timestamp 1787314040
+timestamp 1787852605
 << nwell >>
 rect 4020 -2640 4320 -2340
 << pwell >>
@@ -314,13 +314,13 @@ rect -600 -4240 4800 -4200
 rect -600 -4360 900 -4240
 rect 1020 -4360 4800 -4240
 rect -600 -4400 4800 -4360
-use sky130_fd_sc_hd__decap_12  x1 $PDKPATH/libs.ref/sky130_fd_sc_hd/mag
+use sky130_fd_sc_hd__decap_12  sky130_fd_sc_hd__decap_12_0 pdks/sky130A/libs.ref/sky130_fd_sc_hd/mag
 timestamp 1784019974
-transform 0 1 3448 -1 0 -2398
+transform 0 1 3448 -1 0 -1388
 box -38 -48 1142 592
-use sky130_fd_sc_hd__decap_12  x2
+use sky130_fd_sc_hd__decap_12  sky130_fd_sc_hd__decap_12_1
 timestamp 1784019974
-transform 0 1 3448 -1 0 -1258
+transform 0 1 3448 -1 0 -2528
 box -38 -48 1142 592
 use sky130_fd_pr__nfet_01v8_EUVAEG  XM25
 timestamp 1787314040
@@ -330,27 +330,27 @@ use sky130_fd_pr__pfet_01v8_FRYS2W  XM26
 timestamp 1787314040
 transform 0 -1 972 1 0 -3729
 box -311 -452 311 452
-use sky130_fd_pr__nfet_01v8_24CRNP  XM31 /foss/designs/RO-current-starved
+use sky130_fd_pr__nfet_01v8_24CRNP  XM31
 timestamp 1787314040
 transform 0 1 -270 -1 0 -1859
 box -211 -280 211 280
-use sky130_fd_pr__pfet_01v8_DJSDVV  XM32 /foss/designs/RO-current-starved
+use sky130_fd_pr__pfet_01v8_DJSDVV  XM32
 timestamp 1787314040
 transform 0 1 -251 -1 0 -1429
 box -211 -289 211 289
-use sky130_fd_pr__nfet_01v8_NK2ZG9  XM33 /foss/designs/RO-current-starved
+use sky130_fd_pr__nfet_01v8_NK2ZG9  XM33
 timestamp 1787314040
 transform 0 1 710 -1 0 -1859
 box -211 -410 211 410
-use sky130_fd_pr__pfet_01v8_VJT448  XM34 /foss/designs/RO-current-starved
+use sky130_fd_pr__pfet_01v8_VJT448  XM34
 timestamp 1787314040
 transform 0 1 719 -1 0 -1429
 box -211 -419 211 419
-use sky130_fd_pr__nfet_01v8_JPVZFC  XM35 /foss/designs/RO-current-starved
+use sky130_fd_pr__nfet_01v8_JPVZFC  XM35
 timestamp 1787314040
 transform 0 1 2110 -1 0 -1859
 box -211 -660 211 660
-use sky130_fd_pr__pfet_01v8_YNF6CZ  XM36 /foss/designs/RO-current-starved
+use sky130_fd_pr__pfet_01v8_YNF6CZ  XM36
 timestamp 1787314040
 transform 0 1 2129 -1 0 -1429
 box -211 -669 211 669

@@ -27,7 +27,7 @@ dataset=-1
 unitx=1
 logx=0
 logy=0
-rawfile=$netlist_dir/RO-current-starved_tb_tran_06.raw
+rawfile=$netlist_dir/RO_current_starved_tb_tran_06.raw
 autoload=1}
 B 2 30 -1470 830 -1070 {flags=graph
 y1=0
@@ -51,7 +51,7 @@ dataset=-1
 unitx=1
 logx=0
 logy=0
-rawfile=$netlist_dir/RO-current-starved_tb_tran_07.raw
+rawfile=$netlist_dir/RO_current_starved_tb_tran_07.raw
 autoload=1}
 B 2 40 -1900 840 -1500 {flags=graph
 y1=0
@@ -75,7 +75,7 @@ dataset=-1
 unitx=1
 logx=0
 logy=0
-rawfile=$netlist_dir/RO-current-starved_tb_tran_09.raw
+rawfile=$netlist_dir/RO_current_starved_tb_tran_09.raw
 autoload=1}
 N 430 -170 450 -170 {lab=0}
 N 860 -420 860 -360 {lab=0}
@@ -92,7 +92,7 @@ N 670 -150 670 -130 {lab=0}
 N 670 -230 670 -210 {lab=RO_CLK_OUT}
 N 690 -230 740 -230 {lab=RO_CLK_OUT}
 N 740 -230 830 -230 {lab=RO_CLK_OUT}
-C {RO-current-starved.sym} 280 -210 0 0 {name=x1 primitive=true}
+C {RO_current_starved.sym} 280 -210 0 0 {name=x1 primitive=true}
 C {vsource.sym} 860 -450 0 0 {name=V1 value=1.8 savecurrent=false}
 C {vsource.sym} 920 -450 0 0 {name=V2 value=1.8 savecurrent=false}
 C {gnd.sym} 450 -130 0 0 {name=l1 lab=0}
@@ -178,20 +178,20 @@ value=".include /foss/pdks/sky130A/libs.ref/sky130_fd_sc_hd/spice/sky130_fd_sc_h
   settype frequency f_osc
   settype current i_vdd
   setscale vctrl
-  write RO-current-starved_tb_sweep.raw f_osc i_vdd vctrl
+  write RO_current_starved_tb_sweep.raw f_osc i_vdd vctrl
 
   if $?tran_06
     setplot $tran_06
-    write RO-current-starved_tb_tran_06.raw v(ro_clk_out) v(ro_clk_out_nc)
+    write RO_current_starved_tb_tran_06.raw v(ro_clk_out) v(ro_clk_out_nc)
   end
 
   if $?tran_09
     setplot $tran_09
-    write RO-current-starved_tb_tran_09.raw v(ro_clk_out) v(ro_clk_out_nc)
+    write RO_current_starved_tb_tran_09.raw v(ro_clk_out) v(ro_clk_out_nc)
   end
   if $?tran_07
     setplot $tran_07
-    write RO-current-starved_tb_tran_07.raw v(ro_clk_out) v(ro_clk_out_nc)
+    write RO_current_starved_tb_tran_07.raw v(ro_clk_out) v(ro_clk_out_nc)
   end
 .endc
 "}
@@ -199,10 +199,10 @@ C {devices/launcher.sym} 235 -555 0 0 {name=h3
 descr="Ctrl-click to load ngspice data" 
 tclcommand="
     xschem raw_clear
-    xschem raw_read $netlist_dir/RO-current-starved_tb_sweep.raw
-    xschem raw_read $netlist_dir/RO-current-starved_tb_tran_06.raw
-    xschem raw_read $netlist_dir/RO-current-starved_tb_tran_06.raw
-    xschem raw_read $netlist_dir/RO-current-starved_tb_tran_09.raw
+    xschem raw_read $netlist_dir/RO_current_starved_tb_sweep.raw
+    xschem raw_read $netlist_dir/RO_current_starved_tb_tran_06.raw
+    xschem raw_read $netlist_dir/RO_current_starved_tb_tran_06.raw
+    xschem raw_read $netlist_dir/RO_current_starved_tb_tran_09.raw
 "}
 C {lab_pin.sym} 450 -210 2 0 {name=p6 sig_type=std_logic lab=RO_CLK_OUT_NC}
 C {capa.sym} 670 -180 0 0 {name=C1

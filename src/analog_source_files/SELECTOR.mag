@@ -55,11 +55,11 @@ rect 1055 -1005 1065 -985
 rect 1095 -985 1120 -975
 rect 1095 -1005 1115 -985
 rect 1055 -1010 1115 -1005
-use transmition-gate  x1
+use transmition_gate  x1
 timestamp 1787765167
 transform 1 0 350 0 1 520
 box 500 -720 945 -124
-use transmition-gate  x2
+use transmition_gate  x2
 timestamp 1787765167
 transform 1 0 350 0 1 -130
 box 500 -720 945 -124

@@ -24,7 +24,7 @@ N -280 -40 -250 -40 {lab=S[2]}
 N -280 -20 -250 -20 {lab=S[1]}
 N -280 100 -250 100 {lab=VDD}
 N -280 130 -250 130 {lab=GND}
-C {RO-current-starved.sym} 140 -40 0 0 {name=x1}
+C {RO_current_starved.sym} 140 -40 0 0 {name=x1}
 C {DAC.sym} -130 -40 0 0 {name=x2}
 C {lab_pin.sym} -40 -40 2 0 {name=p3 sig_type=std_logic lab=VDD}
 C {lab_pin.sym} 300 -20 2 0 {name=p1 sig_type=std_logic lab=VDD}
@@ -39,6 +39,3 @@ C {iopin.sym} -280 100 2 0 {name=p10 lab=VDD}
 C {iopin.sym} -280 130 2 0 {name=p11 lab=GND}
 C {lab_pin.sym} -250 100 2 0 {name=p12 sig_type=std_logic lab=VDD}
 C {lab_pin.sym} -250 130 2 0 {name=p13 sig_type=std_logic lab=GND}
-C {code_shown.sym} -10 180 0 0 {name=s1 only_toplevel=false value="
-.include /foss/pdks/sky130A/libs.ref/sky130_fd_sc_hd/spice/sky130_fd_sc_hd.spice
-"}

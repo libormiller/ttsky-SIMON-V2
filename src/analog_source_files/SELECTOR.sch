@@ -39,8 +39,8 @@ C {iopin.sym} -40 150 2 0 {name=p5 lab=VDD}
 C {iopin.sym} -40 170 2 0 {name=p6 lab=GND}
 C {lab_pin.sym} -10 150 2 0 {name=p7 sig_type=std_logic lab=VDD}
 C {lab_pin.sym} -10 170 2 0 {name=p8 sig_type=std_logic lab=GND}
-C {transmition-gate.sym} 130 -50 0 0 {name=x1}
-C {transmition-gate.sym} 130 70 0 0 {name=x2}
+C {transmition_gate.sym} 130 -50 0 0 {name=x1}
+C {transmition_gate.sym} 130 70 0 0 {name=x2}
 C {lab_pin.sym} 230 -50 2 0 {name=p9 sig_type=std_logic lab=VDD}
 C {lab_pin.sym} 230 70 2 0 {name=p10 sig_type=std_logic lab=VDD}
 C {lab_pin.sym} 230 90 2 0 {name=p11 sig_type=std_logic lab=GND}

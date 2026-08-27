@@ -79,7 +79,7 @@ rtl:
 gds: $(CONFIG) $(PIN_CONFIG)
 	mkdir -p "$(RUNS_DIR)"
 	$(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" \
-		--skip bash -c 'SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); test -n "$$SKY130A_ROOT"; librelane --manual-pdk --pdk-root "$$(dirname "$$SKY130A_ROOT")" --pdk $(PDK) --scl $(SCL) --design-dir /work --overwrite --run-tag $(DESIGN_NAME) /work/src/digital_source_files/config.json'
+		--skip bash -c 'sak-pdk sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); test -n "$$SKY130A_ROOT"; librelane --manual-pdk --pdk-root "$$(dirname "$$SKY130A_ROOT")" --pdk $(PDK) --scl $(SCL) --design-dir /work --overwrite --run-tag $(DESIGN_NAME) /work/src/digital_source_files/config.json'
 	@set -e; \
 	chmod -R a+rwX "$(ROOT_DIR)/runs/$(DESIGN_NAME)"; \
 	rm -rf "$(RUNS_DIR)/$(DESIGN_NAME)"; \
@@ -99,14 +99,14 @@ gds: $(CONFIG) $(PIN_CONFIG)
 	cp "$$NETLIST" "$(ROOT_DIR)/gate_level_netlist.v"; \
 	chmod -R a+rwX "$(FRAGMENTS_DIR)"
 	$(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" \
-		--skip bash -c 'make FST= GATES=yes sim'
+		--skip bash -c 'sak-pdk sky130A; make FST= GATES=yes sim'
 
 lvs:
 	@set -e; \
 	test -n "$(LVS_LAYOUT)" && test -n "$(LVS_SCHEMATIC)" || (echo "Usage: make lvs <layout.mag> <schematic.sch>"; exit 2); \
 	test -f "$(LVS_LAYOUT)" && test -f "$(LVS_SCHEMATIC)" || (echo "LVS input file not found"; exit 2); \
 	$(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" \
-		--skip bash -c 'SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd XSCHEM_USER_LIBRARY_PATH=/work/src/analog_source_files; mkdir -p /work/src/analog_source_files/lvs/$(LVS_CELL); cd /work/src/analog_source_files/lvs/$(LVS_CELL); sak-lvs.sh -m -s "/work/$(LVS_SCHEMATIC_REL)" -l "/work/$(LVS_LAYOUT_REL)" -c "$(LVS_CELL)" -w /work/src/analog_source_files/lvs/$(LVS_CELL)'; \
+		--skip bash -c 'sak-pdk sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd XSCHEM_USER_LIBRARY_PATH=/work/src/analog_source_files; mkdir -p /work/src/analog_source_files/lvs/$(LVS_CELL); cd /work/src/analog_source_files/lvs/$(LVS_CELL); sak-lvs.sh -m -s "/work/$(LVS_SCHEMATIC_REL)" -l "/work/$(LVS_LAYOUT_REL)" -c "$(LVS_CELL)" -w /work/src/analog_source_files/lvs/$(LVS_CELL)'; \
 	chmod -R a+rwX "$(ROOT_DIR)/src/analog_source_files/lvs"
 
 drc:
@@ -114,7 +114,7 @@ drc:
 	test -n "$(DRC_LAYOUT)" || (echo "Usage: make drc <layout.mag>"; exit 2); \
 	test -f "$(DRC_LAYOUT)" || (echo "DRC input file not found"; exit 2); \
 	$(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" \
-		--skip bash -c 'SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd; mkdir -p /work/src/analog_source_files/drc/$(DRC_CELL); cd /work/src/analog_source_files/drc/$(DRC_CELL); printf "%s\\n" "load /work/$(DRC_LAYOUT_REL)" "select top cell" "gds write /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds" "quit -noprompt" | magic -dnull -noconsole -rcfile "$$SKY130A_ROOT/libs.tech/magic/sky130A.magicrc"; sak-drc.sh -k -c -l macro -w /work/src/analog_source_files/drc/$(DRC_CELL) /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds'; \
+		--skip bash -c 'sak-pdk sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd; mkdir -p /work/src/analog_source_files/drc/$(DRC_CELL); cd /work/src/analog_source_files/drc/$(DRC_CELL); printf "%s\\n" "load /work/$(DRC_LAYOUT_REL)" "select top cell" "gds write /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds" "quit -noprompt" | magic -dnull -noconsole -rcfile "$$SKY130A_ROOT/libs.tech/magic/sky130A.magicrc"; sak-drc.sh -k -c -l macro -w /work/src/analog_source_files/drc/$(DRC_CELL) /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds'; \
 	chmod -R a+rwX "$(ROOT_DIR)/src/analog_source_files/drc"
 
 clean::

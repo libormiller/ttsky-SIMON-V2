@@ -92,7 +92,7 @@ C {simulator_commands_shown.sym} 550 -730 0 0 {name=COMMANDS
 simulator=ngspice
 only_toplevel=false 
 value=".include /foss/pdks/sky130A/libs.ref/sky130_fd_sc_hd/spice/sky130_fd_sc_hd.spice
-.include /foss/designs/RO-current-starved/DAC_pex.spice
+.include /foss/designs/RO_current_starved/DAC_pex.spice
 .tran 10n 80u
 
 .control

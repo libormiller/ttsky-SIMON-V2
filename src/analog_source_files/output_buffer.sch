@@ -175,6 +175,3 @@ C {lab_pin.sym} -400 150 2 0 {name=p10 sig_type=std_logic lab=VDD}
 C {gnd.sym} -400 200 0 0 {name=l6 lab=GND}
 C {sky130_stdcells/decap_12.sym} -250 250 0 0 {name=x1 VGND=GND VNB=GND VPB=VDD VPWR=VDD prefix=sky130_fd_sc_hd__ }
 C {sky130_stdcells/decap_12.sym} -250 280 0 0 {name=x2 VGND=GND VNB=GND VPB=VDD VPWR=VDD prefix=sky130_fd_sc_hd__ }
-C {code_shown.sym} 120 230 0 0 {name=s1 only_toplevel=false value="
-.include /foss/pdks/sky130A/libs.ref/sky130_fd_sc_hd/spice/sky130_fd_sc_hd.spice
-"}

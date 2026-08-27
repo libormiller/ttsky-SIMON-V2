@@ -184,19 +184,19 @@ use decoder2_4  x1
 timestamp 1787488317
 transform 1 0 446 0 1 -754
 box 710 -1440 3568 -14
-use transmition-gate  x2
+use transmition_gate  x2
 timestamp 1787486244
 transform 1 0 -140 0 1 700
 box 1000 -1440 1890 -248
-use transmition-gate  x3
+use transmition_gate  x3
 timestamp 1787486244
 transform 1 0 760 0 1 700
 box 1000 -1440 1890 -248
-use transmition-gate  x4
+use transmition_gate  x4
 timestamp 1787486244
 transform 1 0 1660 0 1 700
 box 1000 -1440 1890 -248
-use transmition-gate  x5
+use transmition_gate  x5
 timestamp 1787486244
 transform 1 0 2560 0 1 700
 box 1000 -1440 1890 -248

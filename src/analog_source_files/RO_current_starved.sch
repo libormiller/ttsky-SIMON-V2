@@ -508,7 +508,7 @@ C {gnd.sym} 350 270 0 0 {name=l9 lab=GND}
 C {gnd.sym} 580 270 0 0 {name=l10 lab=GND}
 C {gnd.sym} 810 270 0 0 {name=l11 lab=GND}
 C {opin.sym} 1010 -10 0 0 {name=p16 lab=RO_CLK_OUT_NC}
-C {output-buffer.sym} -150 610 0 0 {name=x1}
+C {output_buffer.sym} -150 610 0 0 {name=x1}
 C {lab_pin.sym} 10 610 2 0 {name=p14 sig_type=std_logic lab=VDD}
 C {gnd.sym} 10 640 0 0 {name=l12 lab=GND}
 C {sky130_fd_pr/cap_mim_m3_1.sym} 140 210 0 0 {name=C6 model=cap_mim_m3_1 W=4 L=4 MF=1 spiceprefix=X}
