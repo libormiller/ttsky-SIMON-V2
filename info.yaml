@@ -1,6 +1,6 @@
 # Tiny Tapeout project information
 project:
-  title:        "SIMON C2"      # Project title
+  title:        "SIMON V2"      # Project title
   author:       "Libor Miller"      # Your name
   discord:      "lordugandsky"      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
   description:  "Cryptographic accelerator with SPI interface V2"      # One line description of what your project does
