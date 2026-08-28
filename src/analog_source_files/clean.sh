@@ -9,7 +9,7 @@ files_to_delete=()
 while IFS= read -r -d '' file; do
     filename=${file##*/}
     case "$filename" in
-            *.sch|*.sym|*.mag|*.sh|*.lef|*.gds)
+            *.sch|*.sym|*.mag|*.sh|*.lef|*.gds|*.rb)
                 # Tyto přípony přeskočit
                 ;;
             *)

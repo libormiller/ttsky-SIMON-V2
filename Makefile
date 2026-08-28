@@ -18,7 +18,7 @@ RUNS_DIR := $(FRAGMENTS_DIR)/runs
 EXPORT_DIR := $(FRAGMENTS_DIR)
 DESIGN_NAME := digital_top
 
-EXTRA_ARGS := $(filter-out rtl gds lvs drc clean,$(MAKECMDGOALS))
+EXTRA_ARGS := $(filter-out rtl gds lvs drc extract 3d clean,$(MAKECMDGOALS))
 LVS_LAYOUT := $(word 2,$(MAKECMDGOALS))
 LVS_SCHEMATIC := $(word 3,$(MAKECMDGOALS))
 DRC_LAYOUT := $(word 2,$(MAKECMDGOALS))
@@ -27,6 +27,22 @@ LVS_LAYOUT_REL := $(patsubst $(ROOT_DIR)/%,%,$(abspath $(LVS_LAYOUT)))
 LVS_SCHEMATIC_REL := $(patsubst $(ROOT_DIR)/%,%,$(abspath $(LVS_SCHEMATIC)))
 DRC_CELL := $(basename $(notdir $(DRC_LAYOUT)))
 DRC_LAYOUT_REL := $(patsubst $(ROOT_DIR)/%,%,$(abspath $(DRC_LAYOUT)))
+PEX_LAYOUT := $(word 2,$(MAKECMDGOALS))
+PEX_LAYOUT_REL := $(patsubst $(ROOT_DIR)/%,%,$(abspath $(PEX_LAYOUT)))
+PEX_LAYOUT_DIR := $(dir $(PEX_LAYOUT_REL))
+PEX_LAYOUT_FILE := $(notdir $(PEX_LAYOUT_REL))
+GDS3D_LAYOUT := $(word 2,$(MAKECMDGOALS))
+GDS3D_LAYOUT_REL := $(patsubst $(ROOT_DIR)/%,%,$(abspath $(GDS3D_LAYOUT)))
+GDS3D_LAYOUT_DIR := $(dir $(GDS3D_LAYOUT_REL))
+GDS3D_LAYOUT_FILE := $(notdir $(GDS3D_LAYOUT_REL))
+GDS3D_CELL := $(basename $(GDS3D_LAYOUT_FILE))
+
+ANALOG_DIR := $(ROOT_DIR)/src/analog_source_files
+PEX_DIR := $(ANALOG_DIR)/PEX
+GDS3D_DIR := $(ANALOG_DIR)/3D
+GDS3D_TECH := $(ANALOG_DIR)/gds3d_tech.txt
+DRC_DIR := $(ANALOG_DIR)/drc
+LAYOUT_DIR := $(ANALOG_DIR)/layout
 
 VENV_DIR := $(ROOT_DIR)/.venv
 VENV_BOOTSTRAP := $(shell \
@@ -68,7 +84,7 @@ TOPLEVEL = tb
 COCOTB_TEST_MODULES = test
 export PYTHONPATH := $(TEST_DIR):$(PYTHONPATH)
 
-.PHONY: rtl gds lvs drc clean $(EXTRA_ARGS)
+.PHONY: rtl gds lvs drc extract 3d clean $(EXTRA_ARGS)
 
 $(EXTRA_ARGS):
 	@:
@@ -101,12 +117,17 @@ gds: $(CONFIG) $(PIN_CONFIG)
 	$(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" \
 		--skip bash -c 'sak-pdk sky130A; make FST= GATES=yes sim'
 
+# Magic+Netgen only (-m). Netgen is the sign-off LVS for sky130 and works with the xschem/magic
+# netlists as they are. KLayout's LVS was tried too, but its sky130 deck expects a Cadence-style
+# CDL and reconciling it with our flow took a patched copy of the deck per device type - too
+# fragile to keep. The layout is netlisted from the written GDS rather than the .mag, so what
+# gets checked is the artifact that is actually submitted.
 lvs:
 	@set -e; \
 	test -n "$(LVS_LAYOUT)" && test -n "$(LVS_SCHEMATIC)" || (echo "Usage: make lvs <layout.mag> <schematic.sch>"; exit 2); \
 	test -f "$(LVS_LAYOUT)" && test -f "$(LVS_SCHEMATIC)" || (echo "LVS input file not found"; exit 2); \
 	$(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" \
-		--skip bash -c 'sak-pdk sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd XSCHEM_USER_LIBRARY_PATH=/work/src/analog_source_files; mkdir -p /work/src/analog_source_files/lvs/$(LVS_CELL); cd /work/src/analog_source_files/lvs/$(LVS_CELL); sak-lvs.sh -m -s "/work/$(LVS_SCHEMATIC_REL)" -l "/work/$(LVS_LAYOUT_REL)" -c "$(LVS_CELL)" -w /work/src/analog_source_files/lvs/$(LVS_CELL)'; \
+		--skip bash -c 'sak-pdk sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd XSCHEM_USER_LIBRARY_PATH=/work/src/analog_source_files; mkdir -p /work/src/analog_source_files/lvs/$(LVS_CELL); cd /work/src/analog_source_files/lvs/$(LVS_CELL); echo "load /work/$(LVS_LAYOUT_REL); gds write /work/src/analog_source_files/lvs/$(LVS_CELL)/$(LVS_CELL).gds; quit -noprompt" | magic -dnull -noconsole -rcfile "$$PDKPATH/libs.tech/magic/$$PDK.magicrc"; sak-lvs.sh -m -s "/work/$(LVS_SCHEMATIC_REL)" -l "/work/src/analog_source_files/lvs/$(LVS_CELL)/$(LVS_CELL).gds" -c "$(LVS_CELL)" -w /work/src/analog_source_files/lvs/$(LVS_CELL)'; \
 	chmod -R a+rwX "$(ROOT_DIR)/src/analog_source_files/lvs"
 
 drc:
@@ -117,9 +138,20 @@ drc:
 		--skip bash -c 'sak-pdk sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd; mkdir -p /work/src/analog_source_files/drc/$(DRC_CELL); cd /work/src/analog_source_files/drc/$(DRC_CELL); printf "%s\\n" "load /work/$(DRC_LAYOUT_REL)" "select top cell" "gds write /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds" "quit -noprompt" | magic -dnull -noconsole -rcfile "$$SKY130A_ROOT/libs.tech/magic/sky130A.magicrc"; sak-drc.sh -k -c -l macro -w /work/src/analog_source_files/drc/$(DRC_CELL) /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds'; \
 	chmod -R a+rwX "$(ROOT_DIR)/src/analog_source_files/drc"
 
+extract:
+	@set -e; \
+	test -n "$(PEX_LAYOUT)" || (echo "Usage: make extract <layout.mag>"; exit 2); \
+	test -f "$(PEX_LAYOUT)" || (echo "PEX input file not found"; exit 2); \
+	mkdir -p "$(PEX_DIR)"; \
+	$(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" \
+		--skip bash -c 'sak-pdk sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd; cd "/work/$(PEX_LAYOUT_DIR)"; sak-pex.sh -m 3 -w /work/src/analog_source_files/PEX "$(PEX_LAYOUT_FILE)"'; \
+	chmod -R a+rwX "$(PEX_DIR)"
+
+
 clean::
 	rm -rf sim_build results.xml tb.fst tb.vcd gate_level_netlist.v
 	rm -rf "$(RUNS_DIR)"
 	rm -f "$(EXPORT_DIR)/$(DESIGN_NAME).gds" "$(EXPORT_DIR)/$(DESIGN_NAME).lef" "$(EXPORT_DIR)/$(DESIGN_NAME).spice" "$(EXPORT_DIR)/$(DESIGN_NAME).nl.v"
+	rm -rf "$(PEX_DIR)" "$(DRC_DIR)" "$(LAYOUT_DIR)" "$(GDS3D_DIR)"
 
 include $(shell "$(VENV_DIR)/bin/cocotb-config" --makefiles)/Makefile.sim
