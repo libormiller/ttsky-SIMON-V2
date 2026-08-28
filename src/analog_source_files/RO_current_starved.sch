@@ -119,10 +119,12 @@ N -60 630 10 630 {lab=GND}
 N 10 630 10 640 {lab=GND}
 N -390 150 -380 150 {lab=GND}
 N -390 150 -390 200 {lab=GND}
-N -360 180 -360 190 {lab=GND}
-N -360 190 -360 220 {lab=GND}
-N -390 200 -390 210 {lab=GND}
-N -390 210 -360 210 {lab=GND}
+N -360 180 -360 190 {lab=#net18}
+N -360 250 -360 280 {lab=GND}
+N -390 260 -390 270 {lab=GND}
+N -390 270 -360 270 {lab=GND}
+N -390 200 -390 260 {lab=GND}
+N -390 220 -380 220 {lab=GND}
 C {sky130_fd_pr/nfet3_01v8.sym} 10 40 0 0 {name=M1
 W=1
 L=0.15
@@ -496,7 +498,7 @@ model=pfet_01v8
 spiceprefix=X
 }
 C {lab_pin.sym} -360 -220 1 0 {name=p7 sig_type=std_logic lab=VDD}
-C {gnd.sym} -360 220 0 0 {name=l7 lab=GND}
+C {gnd.sym} -360 280 0 0 {name=l7 lab=GND}
 C {ipin.sym} -510 70 0 0 {name=p8 lab=RO_V_CONTROL}
 C {opin.sym} 10 590 0 0 {name=p9 lab=RO_CLK_OUT}
 C {iopin.sym} -510 150 2 0 {name=p10 lab=VDD}
@@ -517,7 +519,12 @@ C {sky130_fd_pr/cap_mim_m3_1.sym} 580 210 0 0 {name=C2 model=cap_mim_m3_1 W=4 L=
 C {sky130_fd_pr/cap_mim_m3_1.sym} 810 210 0 0 {name=C3 model=cap_mim_m3_1 W=4 L=4 MF=1 spiceprefix=X}
 C {sky130_stdcells/decap_12.sym} -510 230 0 0 {name=x2 VGND=GND VNB=GND VPB=VDD VPWR=VDD prefix=sky130_fd_sc_hd__ }
 C {sky130_fd_pr/res_xhigh_po_0p35.sym} -360 150 0 0 {name=R1
-L=2.2
+L=1.1
+model=res_xhigh_po_0p35
+spiceprefix=X
+mult=1}
+C {sky130_fd_pr/res_xhigh_po_0p35.sym} -360 220 0 0 {name=R2
+L=1.1
 model=res_xhigh_po_0p35
 spiceprefix=X
 mult=1}

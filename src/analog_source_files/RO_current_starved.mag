@@ -1,7 +1,7 @@
 magic
 tech sky130A
 magscale 1 2
-timestamp 1787852605
+timestamp 1787919569
 << nwell >>
 rect 3256 3008 3426 3012
 rect 1880 2720 1900 2740
@@ -344,9 +344,13 @@ rect 560 250 600 400
 rect 490 210 600 250
 rect 6800 0 7000 200
 rect -600 -190 -460 -130
-rect 480 -400 580 -140
-rect 120 -480 580 -400
-rect 120 -600 260 -480
+rect 345 -290 476 -125
+rect -341 -449 -218 -299
+rect 340 -370 476 -290
+rect 345 -395 476 -370
+rect -341 -572 242 -449
+rect 119 -580 242 -572
+rect 119 -600 260 -580
 rect -1000 -640 -600 -600
 rect -1000 -780 -940 -640
 rect -660 -780 -600 -640
@@ -728,12 +732,12 @@ rect 4780 2150 4790 2220
 rect 4910 2150 5450 2220
 rect 4780 2140 5450 2150
 rect 150 2130 890 2140
-use sky130_fd_sc_hd__decap_12  sky130_fd_sc_hd__decap_12_0 pdks/sky130A/libs.ref/sky130_fd_sc_hd/mag
+use sky130_fd_sc_hd__decap_12  sky130_fd_sc_hd__decap_12_0 $PDKPATH/libs.ref/sky130_fd_sc_hd/mag
 timestamp 1784019974
-transform -1 0 742 0 -1 -1208
+transform -1 0 736 0 -1 -1208
 box -38 -48 1142 592
 use output_buffer  x1
-timestamp 1787852605
+timestamp 1787908307
 transform -1 0 5800 0 -1 -3200
 box -1000 -4400 4800 -800
 use sky130_fd_pr__cap_mim_m3_1_Q5V7W8  XC1
@@ -848,10 +852,10 @@ use sky130_fd_pr__pfet_01v8_7HN6Y2  XM24
 timestamp 1786961582
 transform 0 1 -361 -1 0 821
 box -211 -319 211 319
-use sky130_fd_pr__res_xhigh_po_0p35_XZVNVQ  XR1
-timestamp 1786560936
-transform 0 1 102 -1 0 -159
-box -201 -802 201 802
+use sky130_fd_pr__res_xhigh_po_0p35_H374FY  XRA
+timestamp 1787919569
+transform 0 1 58 -1 0 -242
+box -284 -692 284 692
 << labels >>
 flabel metal1 -1000 200 -800 400 0 FreeSans 1600 0 0 0 RO_V_CONTROL
 port 1 nsew

@@ -42,7 +42,13 @@ PEX_DIR := $(ANALOG_DIR)/PEX
 GDS3D_DIR := $(ANALOG_DIR)/3D
 GDS3D_TECH := $(ANALOG_DIR)/gds3d_tech.txt
 DRC_DIR := $(ANALOG_DIR)/drc
+LVS_DIR := $(ANALOG_DIR)/lvs
 LAYOUT_DIR := $(ANALOG_DIR)/layout
+
+# Source files kept in $(ANALOG_DIR); everything else there is tool output and
+# gets removed by `make clean`.
+ANALOG_KEEP_GLOBS := *.sch *.sym *.mag *.sh *.lef *.gds *.rb $(notdir $(GDS3D_TECH))
+ANALOG_PRUNE := $(foreach g,$(ANALOG_KEEP_GLOBS),! -name '$(g)')
 
 VENV_DIR := $(ROOT_DIR)/.venv
 VENV_BOOTSTRAP := $(shell \
@@ -152,6 +158,12 @@ clean::
 	rm -rf sim_build results.xml tb.fst tb.vcd gate_level_netlist.v
 	rm -rf "$(RUNS_DIR)"
 	rm -f "$(EXPORT_DIR)/$(DESIGN_NAME).gds" "$(EXPORT_DIR)/$(DESIGN_NAME).lef" "$(EXPORT_DIR)/$(DESIGN_NAME).spice" "$(EXPORT_DIR)/$(DESIGN_NAME).nl.v"
-	rm -rf "$(PEX_DIR)" "$(DRC_DIR)" "$(LAYOUT_DIR)" "$(GDS3D_DIR)"
+	rm -rf "$(PEX_DIR)" "$(DRC_DIR)" "$(LVS_DIR)" "$(LAYOUT_DIR)" "$(GDS3D_DIR)"
+	@set -e; \
+	removed=$$(find "$(ANALOG_DIR)" -maxdepth 1 -type f $(ANALOG_PRUNE) -print -delete); \
+	if [ -n "$$removed" ]; then \
+		echo "Removed generated files in $(ANALOG_DIR):"; \
+		echo "$$removed" | sed "s|^$(ANALOG_DIR)/|  |"; \
+	fi
 
 include $(shell "$(VENV_DIR)/bin/cocotb-config" --makefiles)/Makefile.sim
