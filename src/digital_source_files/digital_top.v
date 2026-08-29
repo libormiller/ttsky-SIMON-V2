@@ -20,39 +20,39 @@
  *   0x05 = Read Status   (+ 1 dummy byte; returns {7'b0, done} on MISO)
  *   0x06 = Read Result   (+ 4 dummy bytes; returns result on MISO, LSB first)
  *
- * Note: SPI SCK frequency must be at most CLK/8 for reliable operation.
+ * Note: SPI SCK frequency must be at most dclk/8 for reliable operation.
  */
 
 `default_nettype none
 
 module digital_top (
-    input  wire [7:0] ui_in,    // Dedicated inputs
-    output wire [7:0] uo_out,   // Dedicated outputs
-    input  wire [7:0] uio_in,   // IOs: Input path
-    output wire [7:0] uio_out,  // IOs: Output path
-    output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
-    input  wire       ena,      // always 1 when the design is powered, so you can ignore it
-    input  wire       clk,      // clock
-    input  wire       rst_n     // reset_n - low to reset
+    input  wire [7:0] dui_in,    // Dedicated inputs
+    output wire [7:0] duo_out,   // Dedicated outputs
+    input  wire [7:0] duio_in,   // IOs: Input path
+    output wire [7:0] duio_out,  // IOs: Output path
+    output wire [7:0] duio_oe,   // IOs: denable path (active high: 0=input, 1=output)
+    input  wire       dena,      // always 1 when the design is powered, so you can ignore it
+    input  wire       dclk,      // clock
+    input  wire       drst_n     // reset_n - low to reset
 );
 
-    // Internal Power-On Reset (gated by external rst_n so GL sim works)
+    // Internal Power-On Reset (gated by external drst_n so GL sim works)
     reg [7:0] por_sr;
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) por_sr <= 8'h00;
+    always @(posedge dclk or negedge drst_n) begin
+        if (!drst_n) por_sr <= 8'h00;
         else        por_sr <= {por_sr[6:0], 1'b1};
     end
-    wire internal_rst_n = por_sr[7] & rst_n;
+    wire internal_drst_n = por_sr[7] & drst_n;
 
     // Pin Mapping (directly active outputs)
-    assign uo_out  = 8'b0;             // dedicated outputs unused
-    assign uio_oe  = 8'b0000_0100;     // uio[2]=MISO is output, rest inputs
+    assign duo_out  = 8'b0;             // dedicated outputs unused
+    assign duio_oe  = 8'b0000_0100;     // uio[2]=MISO is output, rest inputs
 
-    wire spi_cs_n  = uio_in[0];
-    wire spi_mosi  = uio_in[1];
+    wire spi_cs_n  = duio_in[0];
+    wire spi_mosi  = duio_in[1];
     wire spi_miso;
-    wire spi_sck   = uio_in[3];
-    assign uio_out = {5'b0, spi_cs_n ? 1'b0 : spi_miso, 2'b0};
+    wire spi_sck   = duio_in[3];
+    assign duio_out = {5'b0, spi_cs_n ? 1'b0 : spi_miso, 2'b0};
 
 
     // SPI Slave Instance (Mode 3: CPOL=1, CPHA=1)
@@ -61,8 +61,8 @@ module digital_top (
     reg  [7:0] spi_tdata;
 
     spi_slave spi_inst (
-        .clk   (clk),
-        .rstb  (internal_rst_n),
+        .clk   (dclk),
+        .rstb  (internal_drst_n),
         .ten   (1'b1),
         .tdata (spi_tdata),
         .mlb   (1'b1),          // MSB first
@@ -76,14 +76,14 @@ module digital_top (
 
     // Synchronize CS_n (active-high after sync = CS deasserted)
     reg [3:0] cs_sync;
-    always @(posedge clk or negedge internal_rst_n) begin
-        if (!internal_rst_n) cs_sync <= 4'b1111;
+    always @(posedge dclk or negedge internal_drst_n) begin
+        if (!internal_drst_n) cs_sync <= 4'b1111;
         else                 cs_sync <= {cs_sync[2:0], spi_cs_n};
     end
     
     reg cs_debounced;
-    always @(posedge clk or negedge internal_rst_n) begin
-        if (!internal_rst_n) cs_debounced <= 1'b1;
+    always @(posedge dclk or negedge internal_drst_n) begin
+        if (!internal_drst_n) cs_debounced <= 1'b1;
         else begin
             if (cs_sync[3:1] == 3'b000) cs_debounced <= 1'b0;
             else if (cs_sync[3:1] == 3'b111) cs_debounced <= 1'b1;
@@ -111,7 +111,7 @@ module digital_top (
     wire [31:0] cipher_out;
 
     simon_rounds simon_inst (
-        .clk        (clk),
+        .clk        (dclk),
         .rst        (cipher_rst),
         .mode       (cipher_mode),
         .block      (block_reg),
@@ -129,8 +129,8 @@ module digital_top (
                CMD_READ_RESULT = 8'h06;
 
     // Main Control FSM (system clock domain)
-    always @(posedge clk or negedge internal_rst_n) begin
-        if (!internal_rst_n) begin
+    always @(posedge dclk or negedge internal_drst_n) begin
+        if (!internal_drst_n) begin
             byte_cnt       <= 4'd0;
             cmd_reg        <= 8'h00;
             key_reg        <= 64'hA8C4_9F2B_3D1E_7650;
@@ -225,5 +225,8 @@ module digital_top (
             end
         end
     end
+
+    // Suppress unused-input warnings
+    wire _unused = &{dena, dui_in, duio_in, 1'b0};
 
 endmodule
