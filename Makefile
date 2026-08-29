@@ -18,7 +18,12 @@ RUNS_DIR := $(FRAGMENTS_DIR)/runs
 EXPORT_DIR := $(FRAGMENTS_DIR)
 DESIGN_NAME := digital_top
 
-EXTRA_ARGS := $(filter-out rtl gds lvs drc extract 3d clean,$(MAKECMDGOALS))
+# File arguments are passed as extra goals (`make drc foo.mag`), so they need dummy rules to
+# keep make from complaining. This must not be called EXTRA_ARGS - cocotb owns that name and
+# appends it to the simulator command line - and the dummy rules are only defined for the
+# targets that take arguments, so they cannot shadow anything Makefile.sim brings in.
+ARG_GOALS := $(if $(filter $(firstword $(MAKECMDGOALS)),lvs drc extract 3d),\
+	$(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS)))
 LVS_LAYOUT := $(word 2,$(MAKECMDGOALS))
 LVS_SCHEMATIC := $(word 3,$(MAKECMDGOALS))
 DRC_LAYOUT := $(word 2,$(MAKECMDGOALS))
@@ -50,24 +55,25 @@ LAYOUT_DIR := $(ANALOG_DIR)/layout
 ANALOG_KEEP_GLOBS := *.sch *.sym *.mag *.sh *.lef *.gds *.rb $(notdir $(GDS3D_TECH))
 ANALOG_PRUNE := $(foreach g,$(ANALOG_KEEP_GLOBS),! -name '$(g)')
 
+# Both simulations (`rtl`, and the gate-level check in `gds`) run inside the container image,
+# which ships cocotb - the host only needs podman. The Makefile is re-entered in there, so the
+# cocotb lookup has to work in both worlds: a project venv if one exists (host, for a direct
+# `make sim`), otherwise whatever is installed system-wide (the image). The venv is never
+# usable from inside the container - its scripts carry host shebangs - hence the "does it
+# actually run" test rather than a plain file check.
 VENV_DIR := $(ROOT_DIR)/.venv
-VENV_BOOTSTRAP := $(shell \
-	set -e; \
-	if test ! -x "$(VENV_DIR)/bin/python"; then \
-		command -v python3.12 >/dev/null; \
-		python3.12 -m venv "$(VENV_DIR)"; \
-	fi; \
-	if test ! -x "$(VENV_DIR)/bin/cocotb-config"; then \
-		"$(VENV_DIR)/bin/python" -m pip install -r "$(TEST_DIR)/requirements.txt"; \
-	fi; \
-	echo ready)
-ifeq ($(VENV_BOOTSTRAP),)
-$(error Could not create or initialize $(VENV_DIR) with python3.12)
-endif
-export PATH := $(VENV_DIR)/bin:$(PATH)
+COCOTB_CONFIG := $(shell \
+	if "$(VENV_DIR)/bin/cocotb-config" --makefiles >/dev/null 2>&1; then \
+		echo "$(VENV_DIR)/bin/cocotb-config"; \
+	elif command -v cocotb-config >/dev/null 2>&1; then \
+		command -v cocotb-config; \
+	fi)
 
 PODMAN ?= podman
 LIBRELANE_IMAGE ?= docker.io/hpretl/iic-osic-tools:latest
+# Takes one shell snippet and runs it in the image with the repo bound to /work. --userns=keep-id
+# keeps produced files owned by the invoking user, so nothing needs chowning afterwards.
+RUN_IN_IMAGE = $(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" --skip bash -c
 PDK ?= sky130A
 SCL ?= sky130_fd_sc_hd
 PDK_ROOT ?= /foss/pdks
@@ -90,18 +96,17 @@ TOPLEVEL = tb
 COCOTB_TEST_MODULES = test
 export PYTHONPATH := $(TEST_DIR):$(PYTHONPATH)
 
-.PHONY: rtl gds lvs drc extract 3d clean $(EXTRA_ARGS)
+.PHONY: rtl gds lvs drc extract 3d clean $(ARG_GOALS)
 
-$(EXTRA_ARGS):
+$(ARG_GOALS):
 	@:
 
 rtl:
-	$(MAKE) FST="$(FST)" GATES=no sim
+	$(RUN_IN_IMAGE) 'make FST="$(FST)" GATES=no sim'
 
 gds: $(CONFIG) $(PIN_CONFIG)
 	mkdir -p "$(RUNS_DIR)"
-	$(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" \
-		--skip bash -c 'sak-pdk sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); test -n "$$SKY130A_ROOT"; librelane --manual-pdk --pdk-root "$$(dirname "$$SKY130A_ROOT")" --pdk $(PDK) --scl $(SCL) --design-dir /work --overwrite --run-tag $(DESIGN_NAME) /work/src/digital_source_files/config.json'
+	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); test -n "$$SKY130A_ROOT"; librelane --manual-pdk --pdk-root "$$(dirname "$$SKY130A_ROOT")" --pdk $(PDK) --scl $(SCL) --design-dir /work --overwrite --run-tag $(DESIGN_NAME) /work/src/digital_source_files/config.json'
 	@set -e; \
 	chmod -R a+rwX "$(ROOT_DIR)/runs/$(DESIGN_NAME)"; \
 	rm -rf "$(RUNS_DIR)/$(DESIGN_NAME)"; \
@@ -120,8 +125,7 @@ gds: $(CONFIG) $(PIN_CONFIG)
 	cp "$$NETLIST" "$(EXPORT_DIR)/$(DESIGN_NAME).nl.v"; \
 	cp "$$NETLIST" "$(ROOT_DIR)/gate_level_netlist.v"; \
 	chmod -R a+rwX "$(FRAGMENTS_DIR)"
-	$(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" \
-		--skip bash -c 'sak-pdk sky130A; make FST= GATES=yes sim'
+	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A >/dev/null; export SKY130A_ROOT="$$PDKPATH"; make FST="$(FST)" GATES=yes sim'
 
 # Magic+Netgen only (-m). Netgen is the sign-off LVS for sky130 and works with the xschem/magic
 # netlists as they are. KLayout's LVS was tried too, but its sky130 deck expects a Cadence-style
@@ -132,16 +136,14 @@ lvs:
 	@set -e; \
 	test -n "$(LVS_LAYOUT)" && test -n "$(LVS_SCHEMATIC)" || (echo "Usage: make lvs <layout.mag> <schematic.sch>"; exit 2); \
 	test -f "$(LVS_LAYOUT)" && test -f "$(LVS_SCHEMATIC)" || (echo "LVS input file not found"; exit 2); \
-	$(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" \
-		--skip bash -c 'sak-pdk sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd XSCHEM_USER_LIBRARY_PATH=/work/src/analog_source_files; mkdir -p /work/src/analog_source_files/lvs/$(LVS_CELL); cd /work/src/analog_source_files/lvs/$(LVS_CELL); echo "load /work/$(LVS_LAYOUT_REL); gds write /work/src/analog_source_files/lvs/$(LVS_CELL)/$(LVS_CELL).gds; quit -noprompt" | magic -dnull -noconsole -rcfile "$$PDKPATH/libs.tech/magic/$$PDK.magicrc"; sak-lvs.sh -m -s "/work/$(LVS_SCHEMATIC_REL)" -l "/work/src/analog_source_files/lvs/$(LVS_CELL)/$(LVS_CELL).gds" -c "$(LVS_CELL)" -w /work/src/analog_source_files/lvs/$(LVS_CELL)'; \
+	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd XSCHEM_USER_LIBRARY_PATH=/work/src/analog_source_files; mkdir -p /work/src/analog_source_files/lvs/$(LVS_CELL); cd /work/src/analog_source_files/lvs/$(LVS_CELL); echo "load /work/$(LVS_LAYOUT_REL); gds write /work/src/analog_source_files/lvs/$(LVS_CELL)/$(LVS_CELL).gds; quit -noprompt" | magic -dnull -noconsole -rcfile "$$PDKPATH/libs.tech/magic/$$PDK.magicrc"; sak-lvs.sh -m -s "/work/$(LVS_SCHEMATIC_REL)" -l "/work/src/analog_source_files/lvs/$(LVS_CELL)/$(LVS_CELL).gds" -c "$(LVS_CELL)" -w /work/src/analog_source_files/lvs/$(LVS_CELL)'; \
 	chmod -R a+rwX "$(ROOT_DIR)/src/analog_source_files/lvs"
 
 drc:
 	@set -e; \
 	test -n "$(DRC_LAYOUT)" || (echo "Usage: make drc <layout.mag>"; exit 2); \
 	test -f "$(DRC_LAYOUT)" || (echo "DRC input file not found"; exit 2); \
-	$(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" \
-		--skip bash -c 'sak-pdk sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd; mkdir -p /work/src/analog_source_files/drc/$(DRC_CELL); cd /work/src/analog_source_files/drc/$(DRC_CELL); printf "%s\\n" "load /work/$(DRC_LAYOUT_REL)" "select top cell" "gds write /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds" "quit -noprompt" | magic -dnull -noconsole -rcfile "$$SKY130A_ROOT/libs.tech/magic/sky130A.magicrc"; sak-drc.sh -k -c -l macro -w /work/src/analog_source_files/drc/$(DRC_CELL) /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds'; \
+	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd; mkdir -p /work/src/analog_source_files/drc/$(DRC_CELL); cd /work/src/analog_source_files/drc/$(DRC_CELL); printf "%s\\n" "load /work/$(DRC_LAYOUT_REL)" "select top cell" "gds write /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds" "quit -noprompt" | magic -dnull -noconsole -rcfile "$$SKY130A_ROOT/libs.tech/magic/sky130A.magicrc"; sak-drc.sh -k -c -l macro -w /work/src/analog_source_files/drc/$(DRC_CELL) /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds'; \
 	chmod -R a+rwX "$(ROOT_DIR)/src/analog_source_files/drc"
 
 extract:
@@ -149,8 +151,7 @@ extract:
 	test -n "$(PEX_LAYOUT)" || (echo "Usage: make extract <layout.mag>"; exit 2); \
 	test -f "$(PEX_LAYOUT)" || (echo "PEX input file not found"; exit 2); \
 	mkdir -p "$(PEX_DIR)"; \
-	$(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" \
-		--skip bash -c 'sak-pdk sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd; cd "/work/$(PEX_LAYOUT_DIR)"; sak-pex.sh -m 3 -w /work/src/analog_source_files/PEX "$(PEX_LAYOUT_FILE)"'; \
+	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd; cd "/work/$(PEX_LAYOUT_DIR)"; sak-pex.sh -m 3 -w /work/src/analog_source_files/PEX "$(PEX_LAYOUT_FILE)"'; \
 	chmod -R a+rwX "$(PEX_DIR)"
 
 
@@ -166,4 +167,13 @@ clean::
 		echo "$$removed" | sed "s|^$(ANALOG_DIR)/|  |"; \
 	fi
 
-include $(shell "$(VENV_DIR)/bin/cocotb-config" --makefiles)/Makefile.sim
+ifneq ($(COCOTB_CONFIG),)
+export PATH := $(patsubst %/,%,$(dir $(COCOTB_CONFIG))):$(PATH)
+include $(shell "$(COCOTB_CONFIG)" --makefiles)/Makefile.sim
+else
+# No cocotb here - that is the normal case on the host now. `rtl` and `gds` still work, they
+# just re-enter this Makefile inside the image, where `sim` does exist.
+sim:
+	@echo "cocotb not found on this host - use 'make rtl' or 'make gds', which run the simulation in $(LIBRELANE_IMAGE)"; \
+	exit 2
+endif
