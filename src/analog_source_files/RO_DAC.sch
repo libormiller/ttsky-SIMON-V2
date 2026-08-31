@@ -5,7 +5,7 @@ V {}
 S {}
 F {}
 E {}
-N -50 -60 -10 -60 {lab=#net1}
+N -50 -60 -10 -60 {lab=V_DAC_OUT}
 N -50 -40 -40 -40 {lab=VDD}
 N 290 -20 300 -20 {lab=VDD}
 N -50 -20 -30 -20 {lab=GND}
@@ -24,6 +24,8 @@ N -280 -40 -250 -40 {lab=S[2]}
 N -280 -20 -250 -20 {lab=S[1]}
 N -280 100 -250 100 {lab=VDD}
 N -280 130 -250 130 {lab=GND}
+N -30 -110 -20 -110 {lab=V_DAC_OUT}
+N -30 -110 -30 -60 {lab=V_DAC_OUT}
 C {RO_current_starved.sym} 140 -40 0 0 {name=x1}
 C {DAC.sym} -130 -40 0 0 {name=x2}
 C {lab_pin.sym} -40 -40 2 0 {name=p3 sig_type=std_logic lab=VDD}
@@ -39,3 +41,4 @@ C {iopin.sym} -280 100 2 0 {name=p10 lab=VDD}
 C {iopin.sym} -280 130 2 0 {name=p11 lab=GND}
 C {lab_pin.sym} -250 100 2 0 {name=p12 sig_type=std_logic lab=VDD}
 C {lab_pin.sym} -250 130 2 0 {name=p13 sig_type=std_logic lab=GND}
+C {opin.sym} -20 -110 0 0 {name=p7 lab=V_DAC_OUT}

@@ -49,6 +49,8 @@ GDS3D_TECH := $(ANALOG_DIR)/gds3d_tech.txt
 DRC_DIR := $(ANALOG_DIR)/drc
 LVS_DIR := $(ANALOG_DIR)/lvs
 LAYOUT_DIR := $(ANALOG_DIR)/layout
+DIGITAL_SYM := $(ANALOG_DIR)/$(DESIGN_NAME).sym
+LEF2SYM := $(ROOT_DIR)/scripts/lef2sym.py
 
 # Source files kept in $(ANALOG_DIR); everything else there is tool output and
 # gets removed by `make clean`.
@@ -96,7 +98,7 @@ TOPLEVEL = tb
 COCOTB_TEST_MODULES = test
 export PYTHONPATH := $(TEST_DIR):$(PYTHONPATH)
 
-.PHONY: rtl gds lvs drc extract 3d clean $(ARG_GOALS)
+.PHONY: rtl gds sym lvs drc extract 3d clean $(ARG_GOALS)
 
 $(ARG_GOALS):
 	@:
@@ -125,7 +127,18 @@ gds: $(CONFIG) $(PIN_CONFIG)
 	cp "$$NETLIST" "$(EXPORT_DIR)/$(DESIGN_NAME).nl.v"; \
 	cp "$$NETLIST" "$(ROOT_DIR)/gate_level_netlist.v"; \
 	chmod -R a+rwX "$(FRAGMENTS_DIR)"
+	$(MAKE) --no-print-directory sym
 	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A >/dev/null; export SKY130A_ROOT="$$PDKPATH"; make FST="$(FST)" GATES=yes sim'
+
+# The xschem symbol for the hardened digital macro is generated from the LibreLane LEF rather
+# than drawn by hand, so its pin list follows the macro. Pins are emitted in LEF order, which
+# is the same order magic uses when it extracts that macro to SPICE - that is what makes the
+# xschem instance line and the extracted .subckt line up for top-level LVS. Runs on the host;
+# it is plain python3 and needs neither the PDK nor the image.
+sym: $(DIGITAL_SYM)
+
+$(DIGITAL_SYM): $(EXPORT_DIR)/$(DESIGN_NAME).lef $(LEF2SYM)
+	python3 "$(LEF2SYM)" "$(EXPORT_DIR)/$(DESIGN_NAME).lef" -o "$@"
 
 # Magic+Netgen only (-m). Netgen is the sign-off LVS for sky130 and works with the xschem/magic
 # netlists as they are. KLayout's LVS was tried too, but its sky130 deck expects a Cadence-style
@@ -155,10 +168,11 @@ extract:
 	chmod -R a+rwX "$(PEX_DIR)"
 
 
+# $(FRAGMENTS_DIR) is deliberately left alone: hardening the digital block takes long enough
+# that it is treated as an input to the analog work, not as scratch. Re-run `make gds` to
+# refresh it.
 clean::
 	rm -rf sim_build results.xml tb.fst tb.vcd gate_level_netlist.v
-	rm -rf "$(RUNS_DIR)"
-	rm -f "$(EXPORT_DIR)/$(DESIGN_NAME).gds" "$(EXPORT_DIR)/$(DESIGN_NAME).lef" "$(EXPORT_DIR)/$(DESIGN_NAME).spice" "$(EXPORT_DIR)/$(DESIGN_NAME).nl.v"
 	rm -rf "$(PEX_DIR)" "$(DRC_DIR)" "$(LVS_DIR)" "$(LAYOUT_DIR)" "$(GDS3D_DIR)"
 	@set -e; \
 	removed=$$(find "$(ANALOG_DIR)" -maxdepth 1 -type f $(ANALOG_PRUNE) -print -delete); \

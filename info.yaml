@@ -30,8 +30,8 @@ pinout:
   ui[2]: "DAC[2]"
   ui[3]: "AMUX[0]"
   ui[4]: "AMUX[1]"
-  ui[5]: "CLK_INTERNAL_ENABLE"
-  ui[6]: ""
+  ui[5]: "AMUX_ENABLE"
+  ui[6]: "CLK_INTERNAL_ENABLE"
   ui[7]: ""
 
   # Outputs
