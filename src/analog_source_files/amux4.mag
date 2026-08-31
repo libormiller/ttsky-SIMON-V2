@@ -1,7 +1,7 @@
 magic
 tech sky130A
 magscale 1 2
-timestamp 1787918209
+timestamp 1788177710
 << nwell >>
 rect 3980 -744 4000 -720
 rect 968 -956 4000 -744
@@ -168,7 +168,7 @@ rect 935 -1700 940 -1600
 rect 1030 -1700 3470 -1600
 rect 935 -1705 1035 -1700
 use decoder2_4  x1
-timestamp 1787918001
+timestamp 1788177710
 transform 1 0 446 0 1 -754
 box 830 -1411 3560 92
 use transmition_gate  x2

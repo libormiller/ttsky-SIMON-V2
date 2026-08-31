@@ -1,6 +1,6 @@
 magic
 tech sky130A
-timestamp 1787852605
+timestamp 1788181435
 << locali >>
 rect 1700 3080 1800 3100
 rect 1700 3020 1720 3080
@@ -25,6 +25,7 @@ rect 5480 1680 5570 1900
 rect 5400 1650 5570 1680
 rect 5400 1610 5420 1650
 rect 5480 1610 5570 1650
+rect 1699 209 1799 309
 rect 2700 -1000 2800 -900
 rect 3300 -1000 3400 -900
 rect 4900 -1000 5000 -900
@@ -48,13 +49,13 @@ rect 5600 -980 5730 -920
 rect 5780 -980 5800 -920
 rect 5600 -1000 5800 -980
 use RO_current_starved  x1
-timestamp 1787852605
+timestamp 1787919569
 transform 1 0 2300 0 1 2900
 box -500 -1200 3500 1700
 use DAC  x2
-timestamp 1787765167
+timestamp 1788181435
 transform -1 0 6771 0 -1 250
-box 950 -1410 5071 1250
+box 950 -1410 5071 1253
 << labels >>
 flabel metal1 5700 2900 5800 3000 0 FreeSans 800 0 0 0 RO_CLK_OUT
 port 0 nsew
@@ -70,4 +71,6 @@ flabel metal1 1800 1700 1900 1800 0 FreeSans 800 0 0 0 VDD
 port 5 nsew
 flabel metal1 1800 2500 1900 2600 0 FreeSans 800 0 0 0 GND
 port 6 nsew
+flabel metal1 1699 209 1799 309 0 FreeSans 800 0 0 0 V_DAC_OUT
+port 1 nsew
 << end >>

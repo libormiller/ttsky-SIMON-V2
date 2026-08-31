@@ -56,14 +56,6 @@ N 490 -1010 490 -970 {lab=VGND}
 N 860 -1080 880 -1080 {lab=VDPWR}
 N 860 -1060 900 -1060 {lab=VGND}
 N 900 -1060 900 -1040 {lab=VGND}
-N 1800 -430 1840 -430 {lab=ua[1]}
-N 1800 -430 1800 -250 {lab=ua[1]}
-N 1800 -410 1840 -410 {lab=ua[1]}
-N 1800 -390 1840 -390 {lab=ua[1]}
-N 1800 -370 1840 -370 {lab=ua[1]}
-N 1800 -350 1840 -350 {lab=ua[1]}
-N 1800 -330 1840 -330 {lab=ua[1]}
-N 1800 -310 1840 -310 {lab=ua[1]}
 N 670 -960 1030 -960 {lab=clk}
 N 430 -890 660 -890 {lab=clk}
 N 660 -960 660 -890 {lab=clk}
@@ -174,8 +166,8 @@ C {devices/iopin.sym} 1840 -370 0 0 {name=p50 lab=ua[4]}
 C {devices/iopin.sym} 1840 -350 0 0 {name=p51 lab=ua[5]}
 C {devices/iopin.sym} 1840 -330 0 0 {name=p52 lab=ua[6]}
 C {devices/iopin.sym} 1840 -310 0 0 {name=p53 lab=ua[7]}
-C {sky130_stdcells/mux2_4.sym} 1110 -980 0 0 {name=x4 VGND=VGND VNB=VNB VPB=VPB VPWR=VPWR prefix=sky130_fd_sc_hd__ }
-C {sky130_stdcells/clkbuf_4.sym} 1210 -980 0 0 {name=x5 VGND=VGND VNB=VNB VPB=VPB VPWR=VPWR prefix=sky130_fd_sc_hd__ }
+C {sky130_stdcells/mux2_4.sym} 1110 -980 0 0 {name=x4 VGND=VGND VNB=VGND VPB=VDPWR VPWR=VDPWR prefix=sky130_fd_sc_hd__ }
+C {sky130_stdcells/clkbuf_4.sym} 1210 -980 0 0 {name=x5 VGND=VGND VNB=VGND VPB=VDPWR VPWR=VDPWR prefix=sky130_fd_sc_hd__ }
 C {lab_pin.sym} 490 -1030 2 0 {name=p54 sig_type=std_logic lab=VDPWR}
 C {lab_pin.sym} 900 -1080 2 0 {name=p56 sig_type=std_logic lab=VDPWR}
 C {lab_pin.sym} 1620 -350 2 0 {name=p58 sig_type=std_logic lab=VDPWR}
@@ -184,7 +176,6 @@ C {gnd.sym} 1620 -310 0 0 {name=l1 lab=VGND}
 C {gnd.sym} 1420 -1020 0 0 {name=l2 lab=VGND}
 C {gnd.sym} 900 -1040 0 0 {name=l3 lab=VGND}
 C {gnd.sym} 490 -980 0 0 {name=l4 lab=VGND}
-C {gnd.sym} 1800 -250 0 0 {name=l5 lab=VGND}
 C {lab_pin.sym} 900 -1100 2 0 {name=p55 sig_type=std_logic lab=RO_CLK_NC}
 C {gnd.sym} 1340 -470 0 0 {name=l6 lab=VGND}
 C {lab_pin.sym} 1080 -1140 2 0 {name=p57 sig_type=std_logic lab=V_DAC_OUT}
