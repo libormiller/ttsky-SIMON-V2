@@ -50,7 +50,13 @@ DRC_DIR := $(ANALOG_DIR)/drc
 LVS_DIR := $(ANALOG_DIR)/lvs
 LAYOUT_DIR := $(ANALOG_DIR)/layout
 DIGITAL_SYM := $(ANALOG_DIR)/$(DESIGN_NAME).sym
+DIGITAL_MAG := $(ANALOG_DIR)/$(DESIGN_NAME).mag
+DIGITAL_LVS_SPICE := $(EXPORT_DIR)/$(DESIGN_NAME)_lvs.spice
+# Same file as $(DIGITAL_LVS_SPICE), as seen from inside the image. It is baked into the
+# symbol as an .include, and everything that reads that netlist runs in the container.
+DIGITAL_LVS_SPICE_IMG := /work/src/digital_source_files/digital_fragments/$(DESIGN_NAME)_lvs.spice
 LEF2SYM := $(ROOT_DIR)/scripts/lef2sym.py
+MK_LVS_SPICE := $(ROOT_DIR)/scripts/mk_lvs_spice.py
 
 # Source files kept in $(ANALOG_DIR); everything else there is tool output and
 # gets removed by `make clean`.
@@ -98,7 +104,7 @@ TOPLEVEL = tb
 COCOTB_TEST_MODULES = test
 export PYTHONPATH := $(TEST_DIR):$(PYTHONPATH)
 
-.PHONY: rtl gds sym lvs drc extract 3d clean $(ARG_GOALS)
+.PHONY: rtl gds sym lvs-spice lvs drc extract 3d clean $(ARG_GOALS)
 
 $(ARG_GOALS):
 	@:
@@ -119,26 +125,39 @@ gds: $(CONFIG) $(PIN_CONFIG)
 	LEF=$$(find "$(RUNS_DIR)" -type f -path '*/final/lef/digital_top.lef' -print -quit); \
 	NETLIST=$$(find "$(RUNS_DIR)" -type f -path '*/final/nl/$(DESIGN_NAME).nl.v' -print -quit); \
 	SPICE=$$(find "$(RUNS_DIR)" -type f -path '*/final/spice/$(DESIGN_NAME).spice' -print -quit); \
-	test -n "$$GDS" && test -n "$$LEF" && test -n "$$SPICE" && test -n "$$NETLIST" || (echo "LibreLane outputs not found under $(RUNS_DIR)"; exit 1); \
+	MAG=$$(find "$(RUNS_DIR)" -type f -path '*/final/mag/$(DESIGN_NAME).mag' -print -quit); \
+	test -n "$$GDS" && test -n "$$LEF" && test -n "$$SPICE" && test -n "$$NETLIST" && test -n "$$MAG" || (echo "LibreLane outputs not found under $(RUNS_DIR)"; exit 1); \
 	mkdir -p "$(EXPORT_DIR)"; \
 	cp "$$GDS" "$(EXPORT_DIR)/$(DESIGN_NAME).gds"; \
 	cp "$$LEF" "$(EXPORT_DIR)/$(DESIGN_NAME).lef"; \
 	cp "$$SPICE" "$(EXPORT_DIR)/$(DESIGN_NAME).spice"; \
 	cp "$$NETLIST" "$(EXPORT_DIR)/$(DESIGN_NAME).nl.v"; \
 	cp "$$NETLIST" "$(ROOT_DIR)/gate_level_netlist.v"; \
+	cp "$$MAG" "$(DIGITAL_MAG)"; \
 	chmod -R a+rwX "$(FRAGMENTS_DIR)"
-	$(MAKE) --no-print-directory sym
+	$(MAKE) --no-print-directory sym lvs-spice
 	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A >/dev/null; export SKY130A_ROOT="$$PDKPATH"; make FST="$(FST)" GATES=yes sim'
 
 # The xschem symbol for the hardened digital macro is generated from the LibreLane LEF rather
 # than drawn by hand, so its pin list follows the macro. Pins are emitted in LEF order, which
-# is the same order magic uses when it extracts that macro to SPICE - that is what makes the
-# xschem instance line and the extracted .subckt line up for top-level LVS. Runs on the host;
-# it is plain python3 and needs neither the PDK nor the image.
+# is also the port order of the macro's own SPICE netlist, so the symbol's instance line and
+# the .subckt it .includes agree. (magic orders the ports differently when it extracts the
+# placed macro; netgen matches those by name, so the difference is harmless.) Runs on the
+# host; plain python3, needs neither the PDK nor the image.
 sym: $(DIGITAL_SYM)
 
 $(DIGITAL_SYM): $(EXPORT_DIR)/$(DESIGN_NAME).lef $(LEF2SYM)
-	python3 "$(LEF2SYM)" "$(EXPORT_DIR)/$(DESIGN_NAME).lef" -o "$@"
+	python3 "$(LEF2SYM)" "$(EXPORT_DIR)/$(DESIGN_NAME).lef" -o "$@" \
+		--spice-def "$(DIGITAL_LVS_SPICE_IMG)"
+
+# The macro is placed in the top layout as its full magic view, so magic descends into it and
+# the schematic side has to carry the matching content instead of an empty black box. This is
+# that content: the macro netlist with its abstract-view stubs stripped, which the symbol
+# .includes. The standard cells come from the schematic's own sky130_stdcells symbols.
+lvs-spice: $(DIGITAL_LVS_SPICE)
+
+$(DIGITAL_LVS_SPICE): $(EXPORT_DIR)/$(DESIGN_NAME).spice $(MK_LVS_SPICE)
+	python3 "$(MK_LVS_SPICE)" "$(EXPORT_DIR)/$(DESIGN_NAME).spice" -o "$@"
 
 # Magic+Netgen only (-m). Netgen is the sign-off LVS for sky130 and works with the xschem/magic
 # netlists as they are. KLayout's LVS was tried too, but its sky130 deck expects a Cadence-style

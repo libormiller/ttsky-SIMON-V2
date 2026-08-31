@@ -4,6 +4,7 @@ K {type=subcircuit
 format="@name @pinlist @symname"
 spectre_format="@name ( @pinlist ) @symname"
 template="name=x1"
+spice_sym_def=".include /work/src/digital_source_files/digital_fragments/digital_top_lvs.spice"
 }
 V {}
 S {}
