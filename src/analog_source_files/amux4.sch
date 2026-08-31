@@ -77,6 +77,4 @@ C {ipin.sym} 270 -100 0 0 {name=p14 lab=X1}
 C {ipin.sym} 270 10 0 0 {name=p15 lab=X2}
 C {ipin.sym} 270 110 0 0 {name=p16 lab=X3}
 C {ipin.sym} 270 220 0 0 {name=p17 lab=X4}
-C {code_shown.sym} -170 320 0 0 {name=s1 only_toplevel=false value=".include /foss/pdks/sky130A/libs.ref/sky130_fd_sc_hd/spice/sky130_fd_sc_hd.spice
-"}
 C {decoder2_4.sym} -20 0 0 0 {name=x1}

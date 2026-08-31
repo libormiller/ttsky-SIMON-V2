@@ -72,5 +72,5 @@ port 5 nsew
 flabel metal1 1800 2500 1900 2600 0 FreeSans 800 0 0 0 GND
 port 6 nsew
 flabel metal1 1699 209 1799 309 0 FreeSans 800 0 0 0 V_DAC_OUT
-port 1 nsew
+port 7 nsew
 << end >>

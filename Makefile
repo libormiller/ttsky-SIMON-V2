@@ -55,6 +55,18 @@ DIGITAL_LVS_SPICE := $(EXPORT_DIR)/$(DESIGN_NAME)_lvs.spice
 # Same file as $(DIGITAL_LVS_SPICE), as seen from inside the image. It is baked into the
 # symbol as an .include, and everything that reads that netlist runs in the container.
 DIGITAL_LVS_SPICE_IMG := /work/src/digital_source_files/digital_fragments/$(DESIGN_NAME)_lvs.spice
+DIGITAL_GDS_IMG := /work/src/digital_source_files/digital_fragments/$(DESIGN_NAME).gds
+# Splice the hardened macro into the output stream from LibreLane's own GDS instead of letting
+# magic re-render it from the .mag. Magic's rendering shifts the standard cells just enough that
+# their implant layers stop merging across cell boundaries, and KLayout's FEOL deck then reports
+# psdm/nsdm/npc minimum-width violations that are not in the macro as LibreLane wrote it - the
+# same deck on digital_top.gds alone is clean. Magic's own DRC does not catch this.
+VENDOR_GDS_CMDS = if [ -f "$(DIGITAL_GDS_IMG)" ]; then printf "%s\\n" "gds readonly true" "gds rescale false" "gds read $(DIGITAL_GDS_IMG)"; fi
+# The chip top cell, taken from info.yaml so it cannot drift from what the GDS action reads.
+TOP_MODULE := $(shell sed -n 's/^ *top_module: *"\(.*\)".*/\1/p' info.yaml)
+TOP_MAG := $(ANALOG_DIR)/$(TOP_MODULE).mag
+SUBMIT_GDS := $(ROOT_DIR)/gds/$(TOP_MODULE).gds
+SUBMIT_LEF := $(ROOT_DIR)/lef/$(TOP_MODULE).lef
 LEF2SYM := $(ROOT_DIR)/scripts/lef2sym.py
 MK_LVS_SPICE := $(ROOT_DIR)/scripts/mk_lvs_spice.py
 
@@ -104,7 +116,7 @@ TOPLEVEL = tb
 COCOTB_TEST_MODULES = test
 export PYTHONPATH := $(TEST_DIR):$(PYTHONPATH)
 
-.PHONY: rtl gds sym lvs-spice lvs drc extract 3d clean $(ARG_GOALS)
+.PHONY: rtl gds sym lvs-spice lvs drc extract 3d submit clean $(ARG_GOALS)
 
 $(ARG_GOALS):
 	@:
@@ -168,14 +180,14 @@ lvs:
 	@set -e; \
 	test -n "$(LVS_LAYOUT)" && test -n "$(LVS_SCHEMATIC)" || (echo "Usage: make lvs <layout.mag> <schematic.sch>"; exit 2); \
 	test -f "$(LVS_LAYOUT)" && test -f "$(LVS_SCHEMATIC)" || (echo "LVS input file not found"; exit 2); \
-	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd XSCHEM_USER_LIBRARY_PATH=/work/src/analog_source_files; mkdir -p /work/src/analog_source_files/lvs/$(LVS_CELL); cd /work/src/analog_source_files/lvs/$(LVS_CELL); echo "load /work/$(LVS_LAYOUT_REL); gds write /work/src/analog_source_files/lvs/$(LVS_CELL)/$(LVS_CELL).gds; quit -noprompt" | magic -dnull -noconsole -rcfile "$$PDKPATH/libs.tech/magic/$$PDK.magicrc"; sak-lvs.sh -m -s "/work/$(LVS_SCHEMATIC_REL)" -l "/work/src/analog_source_files/lvs/$(LVS_CELL)/$(LVS_CELL).gds" -c "$(LVS_CELL)" -w /work/src/analog_source_files/lvs/$(LVS_CELL)'; \
+	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd XSCHEM_USER_LIBRARY_PATH=/work/src/analog_source_files; mkdir -p /work/src/analog_source_files/lvs/$(LVS_CELL); cd /work/src/analog_source_files/lvs/$(LVS_CELL); { $(VENDOR_GDS_CMDS); printf "%s\\n" "load /work/$(LVS_LAYOUT_REL)" "select top cell" "gds write /work/src/analog_source_files/lvs/$(LVS_CELL)/$(LVS_CELL).gds" "quit -noprompt"; } | magic -dnull -noconsole -rcfile "$$PDKPATH/libs.tech/magic/$$PDK.magicrc"; sak-lvs.sh -m -s "/work/$(LVS_SCHEMATIC_REL)" -l "/work/src/analog_source_files/lvs/$(LVS_CELL)/$(LVS_CELL).gds" -c "$(LVS_CELL)" -w /work/src/analog_source_files/lvs/$(LVS_CELL)'; \
 	chmod -R a+rwX "$(ROOT_DIR)/src/analog_source_files/lvs"
 
 drc:
 	@set -e; \
 	test -n "$(DRC_LAYOUT)" || (echo "Usage: make drc <layout.mag>"; exit 2); \
 	test -f "$(DRC_LAYOUT)" || (echo "DRC input file not found"; exit 2); \
-	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd; mkdir -p /work/src/analog_source_files/drc/$(DRC_CELL); cd /work/src/analog_source_files/drc/$(DRC_CELL); printf "%s\\n" "load /work/$(DRC_LAYOUT_REL)" "select top cell" "gds write /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds" "quit -noprompt" | magic -dnull -noconsole -rcfile "$$SKY130A_ROOT/libs.tech/magic/sky130A.magicrc"; sak-drc.sh -k -c -l macro -w /work/src/analog_source_files/drc/$(DRC_CELL) /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds'; \
+	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd; mkdir -p /work/src/analog_source_files/drc/$(DRC_CELL); cd /work/src/analog_source_files/drc/$(DRC_CELL); { $(VENDOR_GDS_CMDS); printf "%s\\n" "load /work/$(DRC_LAYOUT_REL)" "select top cell" "gds write /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds" "quit -noprompt"; } | magic -dnull -noconsole -rcfile "$$SKY130A_ROOT/libs.tech/magic/sky130A.magicrc"; sak-drc.sh -k -c -l macro -w /work/src/analog_source_files/drc/$(DRC_CELL) /work/src/analog_source_files/drc/$(DRC_CELL)/$(DRC_CELL).gds'; \
 	chmod -R a+rwX "$(ROOT_DIR)/src/analog_source_files/drc"
 
 extract:
@@ -186,6 +198,21 @@ extract:
 	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A; SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=sky130A PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=sky130_fd_sc_hd; cd "/work/$(PEX_LAYOUT_DIR)"; sak-pex.sh -m 3 -w /work/src/analog_source_files/PEX "$(PEX_LAYOUT_FILE)"'; \
 	chmod -R a+rwX "$(PEX_DIR)"
 
+
+# Build the two files Tiny Tapeout's GDS action consumes. `lef write -hide` keeps only the
+# ports and a coarse obstruction; without it magic streams every shape into the LEF (5 MB
+# instead of 9 kB). The macro comes from LibreLane's own GDS via $(VENDOR_GDS_CMDS), the same
+# way `drc` and `lvs` read it.
+submit:
+	@set -e; \
+	test -f "$(TOP_MAG)" || (echo "Top layout not found: $(TOP_MAG)"; exit 2); \
+	mkdir -p "$(ROOT_DIR)/gds" "$(ROOT_DIR)/lef"
+	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh $(PDK); SKY130A_ROOT=$$(find /foss/pdks -type d -name sky130A -print -quit); export PDK=$(PDK) PDK_ROOT=$$(dirname "$$SKY130A_ROOT") PDKPATH="$$SKY130A_ROOT" STD_CELL_LIBRARY=$(SCL); { $(VENDOR_GDS_CMDS); printf "%s\\n" "addpath /work/src/analog_source_files" "load $(TOP_MODULE)" "select top cell" "gds write /work/gds/$(TOP_MODULE).gds" "lef write /work/lef/$(TOP_MODULE).lef -hide" "quit -noprompt"; } | magic -dnull -noconsole -rcfile "$$PDKPATH/libs.tech/magic/$$PDK.magicrc"'
+	@set -e; \
+	test -s "$(SUBMIT_GDS)" && test -s "$(SUBMIT_LEF)" || (echo "submit: magic produced no output"; exit 1); \
+	chmod a+rwX "$(SUBMIT_GDS)" "$(SUBMIT_LEF)"; \
+	echo "  gds/$(TOP_MODULE).gds  $$(du -h "$(SUBMIT_GDS)" | cut -f1)"; \
+	echo "  lef/$(TOP_MODULE).lef  $$(du -h "$(SUBMIT_LEF)" | cut -f1)  $$(grep -c '^ *PIN ' "$(SUBMIT_LEF)") pins, $$(grep -m1 SIZE "$(SUBMIT_LEF)" | tr -s ' ')"
 
 # $(FRAGMENTS_DIR) is deliberately left alone: hardening the digital block takes long enough
 # that it is treated as an input to the analog work, not as scratch. Re-run `make gds` to
