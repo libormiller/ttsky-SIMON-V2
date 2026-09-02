@@ -43,13 +43,13 @@ There is also an amux which selects which measurement gets to the analog pin.
 
 | Pin    | Signal   |  Description              |
 |--------|----------|--------------------------|
-| uio[0] | DAC[0]     | Bit 0 of DAC  |
-| uio[1] | DAC[1]     | Bit 1 of DAC     |
-| uio[2] | DAC[2]     | Bit 2 of DAC     |
-| uio[3] | AMUX[0]     | Select 0 of measurement on analog pin 0    |
-| uio[4] | AMUX[1]      |Select 0 of measurement on analog pin 0     |
-| uio[5] | AMUX_ENABLE     | Enables amux which conects line to analog pin 0     |
-| uio[6] | CLK_INTERNAL_ENABLE    | Switches from ring oscillator to external clock for digital block    |
+| ui[0] | DAC[0]     | Bit 0 of DAC  |
+| ui[1] | DAC[1]     | Bit 1 of DAC     |
+| ui[2] | DAC[2]     | Bit 2 of DAC     |
+| ui[3] | AMUX[0]     | Select 0 of measurement on analog pin 0    |
+| ui[4] | AMUX[1]      |Select 0 of measurement on analog pin 0     |
+| ui[5] | AMUX_ENABLE     | Enables amux which conects line to analog pin 0     |
+| ui[6] | CLK_INTERNAL_ENABLE    | Switches from ring oscillator to external clock for digital block    |
 
 
 ## How to test
