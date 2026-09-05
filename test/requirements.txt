@@ -1,2 +1,5 @@
 pytest
 cocotb
+# SPI master driving the testbench. Pinned to an upstream commit rather than the PyPI release:
+# the last release (0.5.0) predates cocotb 2.0 and fails to import against it.
+cocotbext-spi @ git+https://github.com/schang412/cocotbext-spi.git@67857d0c7b9ea854467b57269becb9b221d9986e

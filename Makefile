@@ -94,6 +94,11 @@ LIBRELANE_IMAGE ?= docker.io/hpretl/iic-osic-tools:latest
 # Takes one shell snippet and runs it in the image with the repo bound to /work. --userns=keep-id
 # keeps produced files owned by the invoking user, so nothing needs chowning afterwards.
 RUN_IN_IMAGE = $(PODMAN) run --rm --userns=keep-id -v "$(ROOT_DIR):/work:z" -w /work "$(LIBRELANE_IMAGE)" --skip bash -c
+# The cocotb testbench drives the DUT through cocotbext-spi, which the image does not ship.
+# It is installed into the throwaway container just before the simulation runs; --user keeps it
+# out of the bind-mounted repo, and pip leaves the already-installed cocotb alone. Needs network
+# access, same as pulling the image does.
+INSTALL_TB_DEPS = python3 -m pip install --user --quiet --disable-pip-version-check -r /work/test/requirements.txt
 PDK ?= sky130A
 SCL ?= sky130_fd_sc_hd
 PDK_ROOT ?= /foss/pdks
@@ -122,7 +127,7 @@ $(ARG_GOALS):
 	@:
 
 rtl:
-	$(RUN_IN_IMAGE) 'make FST="$(FST)" GATES=no sim'
+	$(RUN_IN_IMAGE) '$(INSTALL_TB_DEPS) && make FST="$(FST)" GATES=no sim'
 
 gds: $(CONFIG) $(PIN_CONFIG)
 	mkdir -p "$(RUNS_DIR)"
@@ -148,7 +153,7 @@ gds: $(CONFIG) $(PIN_CONFIG)
 	cp "$$MAG" "$(DIGITAL_MAG)"; \
 	chmod -R a+rwX "$(FRAGMENTS_DIR)"
 	$(MAKE) --no-print-directory sym lvs-spice
-	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A >/dev/null; export SKY130A_ROOT="$$PDKPATH"; make FST="$(FST)" GATES=yes sim'
+	$(RUN_IN_IMAGE) 'source sak-pdk-script.sh sky130A >/dev/null; export SKY130A_ROOT="$$PDKPATH"; $(INSTALL_TB_DEPS) && make FST="$(FST)" GATES=yes sim'
 
 # The xschem symbol for the hardened digital macro is generated from the LibreLane LEF rather
 # than drawn by hand, so its pin list follows the macro. Pins are emitted in LEF order, which

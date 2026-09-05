@@ -5,19 +5,112 @@ import random
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles, Timer
+from cocotb.triggers import ClockCycles
+from cocotbext.spi import SpiBus, SpiConfig, SpiMaster
 
 # ---------------------------------------------------------------------------
-# SPI bit-bang helpers  (Mode 3: CPOL=1, CPHA=1, MSB first)
+# Bus setup
 # ---------------------------------------------------------------------------
-# Pin mapping in uio:
-#   bit 0 = CS_n  (idle HIGH)
-#   bit 1 = MOSI
-#   bit 2 = MISO  (output from slave)
-#   bit 3 = SCK   (idle HIGH)
+# The DUT is a SPI slave in Mode 3 (CPOL=1, CPHA=1), MSB first. Its pins are broken out of
+# the uio bus by tb.v as spi_sclk / spi_mosi / spi_miso / spi_cs_n, which is exactly what
+# SpiBus.from_prefix(dut, "spi") looks for.
+#
+# SCK has to stay at or below dclk/8, and the clock below is 50 MHz, so 1 MHz it is.
+# frame_spacing_ns is the gap the master leaves after every word; it is what keeps CS_n high
+# long enough between frames for the slave's chip-select debouncer to see the frame end.
 
-SPI_HALF_NS = 500  # half-period of SPI clock in ns  (-> 1 MHz SCK)
+CLK_PERIOD_NS = 20   # 50 MHz, matches config.json
+SCLK_FREQ_HZ = 1e6
 
+SPI_CONFIG = SpiConfig(
+    word_width=8,
+    sclk_freq=SCLK_FREQ_HZ,
+    cpol=True,
+    cpha=True,
+    msb_first=True,
+    frame_spacing_ns=500,
+    cs_active_low=True,
+)
+
+# SPI command protocol (first byte of each CS frame)
+CMD_WRITE_KEY   = 0x01   # + 8 data bytes, LSB first
+CMD_WRITE_BLOCK = 0x02   # + 4 data bytes, LSB first
+CMD_ENCRYPT     = 0x03   # no data bytes
+CMD_DECRYPT     = 0x04   # no data bytes
+CMD_READ_STATUS = 0x05   # + 1 dummy byte -> {7'b0, done}
+CMD_READ_RESULT = 0x06   # + 4 dummy bytes -> result, LSB first
+
+
+class SimonSpi:
+    """The SIMON core's command set, spoken over a cocotbext-spi master."""
+
+    def __init__(self, dut):
+        self.dut = dut
+        self.spi = SpiMaster(SpiBus.from_prefix(dut, "spi", cs_name="cs_n"), SPI_CONFIG)
+
+    async def _frame(self, *tx_bytes):
+        """Clock one CS-framed transaction and return what came back on MISO.
+
+        burst=True keeps CS_n asserted for every byte of the frame; the master drops it once
+        the queue drains, which is the end of the command.
+        """
+        await self.spi.write(bytes(tx_bytes), burst=True)
+        return self.spi.read_nowait()
+
+    async def write_key(self, key_64):
+        """CMD 0x01 - load the 64-bit key."""
+        await self._frame(CMD_WRITE_KEY, *key_64.to_bytes(8, "little"))
+
+    async def write_block(self, block_32):
+        """CMD 0x02 - load the 32-bit data block."""
+        await self._frame(CMD_WRITE_BLOCK, *block_32.to_bytes(4, "little"))
+
+    async def encrypt(self):
+        """CMD 0x03 - start an encryption."""
+        await self._frame(CMD_ENCRYPT)
+
+    async def decrypt(self):
+        """CMD 0x04 - start a decryption."""
+        await self._frame(CMD_DECRYPT)
+
+    async def read_status(self):
+        """CMD 0x05 - the done bit. The byte clocked out alongside the command is discarded."""
+        _cmd_echo, status = await self._frame(CMD_READ_STATUS, 0x00)
+        return status & 1
+
+    async def read_result(self):
+        """CMD 0x06 - the 32-bit result, LSB first."""
+        rx = await self._frame(CMD_READ_RESULT, 0x00, 0x00, 0x00, 0x00)
+        return int.from_bytes(rx[1:5], "little")
+
+    async def wait_done(self, attempts=20):
+        """Poll status until the cipher reports done. Returns True on success."""
+        for _ in range(attempts):
+            if await self.read_status():
+                return True
+            await ClockCycles(self.dut.clk, 50)
+        return False
+
+
+async def init_dut(dut):
+    """Start the clock, hook up the SPI master, reset, and let start-up finish."""
+    cocotb.start_soon(Clock(dut.clk, CLK_PERIOD_NS, unit="ns").start())
+    dut.ena.value = 1
+    dut.ui_in.value = 0
+
+    # Constructing the master parks SCK/MOSI/CS_n at their idle levels before reset is released.
+    simon = SimonSpi(dut)
+
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 10)
+    dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 100)  # let the startup cipher reset finish (GL sim needs more)
+    return simon
+
+
+# ---------------------------------------------------------------------------
+# Reference model
+# ---------------------------------------------------------------------------
 
 def rotl(x, k): return ((x << k) & 0xFFFF) | (x >> (16 - k))
 def rotr(x, k): return ((x >> k) & 0xFFFF) | ((x << (16 - k)) & 0xFFFF)
@@ -39,117 +132,6 @@ def simon_32_64_gold(plaintext_int, key_int):
     return ((L & 0xFFFF) << 16) | (R & 0xFFFF)
 
 
-async def spi_begin(dut):
-    """Assert CS_n low; SCK stays high (Mode 3 idle)."""
-    dut.uio_in.value = 0x08  # SCK=1, MOSI=0, CS_n=0
-    await Timer(SPI_HALF_NS, unit="ns")
-
-
-async def spi_end(dut):
-    """De-assert CS_n; SCK stays high."""
-    dut.uio_in.value = 0x09  # SCK=1, MOSI=0, CS_n=1
-    await Timer(SPI_HALF_NS, unit="ns")
-
-
-async def spi_xfer_byte(dut, mosi_byte):
-    """Clock one byte over SPI. Returns the MISO byte received."""
-    miso_byte = 0
-    for i in range(8):
-        bit = (mosi_byte >> (7 - i)) & 1
-        # Falling SCK edge - slave shifts-out next MISO bit, master sets MOSI
-        dut.uio_in.value = (bit << 1)          # SCK=0, CS_n=0
-        await Timer(SPI_HALF_NS, unit="ns")
-        # Rising SCK edge - slave samples MOSI, master samples MISO
-        dut.uio_in.value = (bit << 1) | 0x08   # SCK=1, CS_n=0
-        await Timer(100, unit="ns")           # settle time
-        try:
-            miso_bit = (dut.uio_out.value.to_unsigned() >> 2) & 1
-        except ValueError:
-            miso_bit = 0  # treat x/z as 0 (GL sim before signals settle)
-        miso_byte = (miso_byte << 1) | miso_bit
-        await Timer(SPI_HALF_NS - 100, unit="ns")
-    return miso_byte
-
-
-# ---------------------------------------------------------------------------
-# High-level SPI command wrappers
-# ---------------------------------------------------------------------------
-
-async def spi_write_key(dut, key_64):
-    """Write 64-bit key (CMD 0x01), LSB first."""
-    await spi_begin(dut)
-    await spi_xfer_byte(dut, 0x01)
-    for i in range(8):
-        await spi_xfer_byte(dut, (key_64 >> (i * 8)) & 0xFF)
-    await spi_end(dut)
-
-
-async def spi_write_block(dut, block_32):
-    """Write 32-bit block (CMD 0x02), LSB first."""
-    await spi_begin(dut)
-    await spi_xfer_byte(dut, 0x02)
-    for i in range(4):
-        await spi_xfer_byte(dut, (block_32 >> (i * 8)) & 0xFF)
-    await spi_end(dut)
-
-
-async def spi_encrypt(dut):
-    """Issue encrypt command (CMD 0x03)."""
-    await spi_begin(dut)
-    await spi_xfer_byte(dut, 0x03)
-    await spi_end(dut)
-
-
-async def spi_decrypt(dut):
-    """Issue decrypt command (CMD 0x04)."""
-    await spi_begin(dut)
-    await spi_xfer_byte(dut, 0x04)
-    await spi_end(dut)
-
-
-async def spi_read_status(dut):
-    """Read status byte (CMD 0x05). Returns done bit (0 or 1)."""
-    await spi_begin(dut)
-    await spi_xfer_byte(dut, 0x05)
-    status = await spi_xfer_byte(dut, 0x00)  # dummy -> gets status on MISO
-    await spi_end(dut)
-    return status & 1
-
-
-async def spi_read_result(dut):
-    """Read 32-bit result (CMD 0x06), LSB first."""
-    await spi_begin(dut)
-    await spi_xfer_byte(dut, 0x06)
-    result = 0
-    for i in range(4):
-        b = await spi_xfer_byte(dut, 0x00)
-        result |= b << (i * 8)
-    await spi_end(dut)
-    return result
-
-
-async def wait_done(dut, attempts=20):
-    """Poll status until done or timeout. Returns True on success."""
-    for _ in range(attempts):
-        if await spi_read_status(dut):
-            return True
-        await ClockCycles(dut.clk, 50)
-    return False
-
-
-async def init_dut(dut):
-    """Start clock, apply reset, wait for startup initialisation."""
-    clock = Clock(dut.clk, 20, unit="ns")    # 50 MHz  (matches config.json)
-    cocotb.start_soon(clock.start())
-    dut.ena.value = 1
-    dut.ui_in.value = 0
-    dut.uio_in.value = 0x09   # SPI idle: SCK=1, MOSI=0, CS_n=1
-    dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
-    dut.rst_n.value = 1
-    await ClockCycles(dut.clk, 100)  # let startup cipher reset finish (GL sim needs more)
-
-
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -167,27 +149,27 @@ CIPHER_TV     = 0xc69be9bb
 @cocotb.test()
 async def test_default_key_roundtrip(dut):
     """Encrypt then decrypt a random block using the default key; verify round-trip."""
-    await init_dut(dut)
+    simon = await init_dut(dut)
     dut._log.info("=== Default key round-trip test ===")
 
     plaintext = random.getrandbits(32)
     dut._log.info(f"Plaintext:  0x{plaintext:08X}")
 
     # We skip writing the key and rely on the hardware reset default
-    await spi_write_block(dut, plaintext)
-    await spi_encrypt(dut)
+    await simon.write_block(plaintext)
+    await simon.encrypt()
 
-    assert await wait_done(dut), "Encryption did not finish"
+    assert await simon.wait_done(), "Encryption did not finish"
 
-    ciphertext = await spi_read_result(dut)
+    ciphertext = await simon.read_result()
     dut._log.info(f"Ciphertext: 0x{ciphertext:08X}")
 
-    await spi_write_block(dut, ciphertext)
-    await spi_decrypt(dut)
+    await simon.write_block(ciphertext)
+    await simon.decrypt()
 
-    assert await wait_done(dut), "Decryption did not finish"
+    assert await simon.wait_done(), "Decryption did not finish"
 
-    decrypted = await spi_read_result(dut)
+    decrypted = await simon.read_result()
     dut._log.info(f"Decrypted:  0x{decrypted:08X}  (expected 0x{plaintext:08X})")
     assert decrypted == plaintext, f"Round-trip default key mismatch: 0x{decrypted:08X} != 0x{plaintext:08X}"
     dut._log.info("PASS")
@@ -196,16 +178,16 @@ async def test_default_key_roundtrip(dut):
 @cocotb.test()
 async def test_encrypt(dut):
     """Encrypt with known test vector and verify ciphertext."""
-    await init_dut(dut)
+    simon = await init_dut(dut)
     dut._log.info("=== Encrypt test ===")
 
-    await spi_write_key(dut, KEY_TV)
-    await spi_write_block(dut, PLAIN_TV)
-    await spi_encrypt(dut)
+    await simon.write_key(KEY_TV)
+    await simon.write_block(PLAIN_TV)
+    await simon.encrypt()
 
-    assert await wait_done(dut), "Encryption did not finish"
+    assert await simon.wait_done(), "Encryption did not finish"
 
-    ct = await spi_read_result(dut)
+    ct = await simon.read_result()
     dut._log.info(f"Result:   0x{ct:08X}  (expected 0x{CIPHER_TV:08X})")
     assert ct == CIPHER_TV, f"Encrypt mismatch: 0x{ct:08X} != 0x{CIPHER_TV:08X}"
     dut._log.info("PASS")
@@ -214,16 +196,16 @@ async def test_encrypt(dut):
 @cocotb.test()
 async def test_decrypt(dut):
     """Decrypt with known test vector and verify plaintext."""
-    await init_dut(dut)
+    simon = await init_dut(dut)
     dut._log.info("=== Decrypt test ===")
 
-    await spi_write_key(dut, KEY_TV)
-    await spi_write_block(dut, CIPHER_TV)
-    await spi_decrypt(dut)
+    await simon.write_key(KEY_TV)
+    await simon.write_block(CIPHER_TV)
+    await simon.decrypt()
 
-    assert await wait_done(dut), "Decryption did not finish"
+    assert await simon.wait_done(), "Decryption did not finish"
 
-    pt = await spi_read_result(dut)
+    pt = await simon.read_result()
     dut._log.info(f"Result:   0x{pt:08X}  (expected 0x{PLAIN_TV:08X})")
     assert pt == PLAIN_TV, f"Decrypt mismatch: 0x{pt:08X} != 0x{PLAIN_TV:08X}"
     dut._log.info("PASS")
@@ -232,25 +214,25 @@ async def test_decrypt(dut):
 @cocotb.test()
 async def test_roundtrip(dut):
     """Encrypt then decrypt with an arbitrary key; verify round-trip."""
-    await init_dut(dut)
+    simon = await init_dut(dut)
     dut._log.info("=== Round-trip test ===")
 
     KEY       = 0xDEADBEEFCAFEBABE
     PLAINTEXT = 0x12345678
 
     # Encrypt
-    await spi_write_key(dut, KEY)
-    await spi_write_block(dut, PLAINTEXT)
-    await spi_encrypt(dut)
-    assert await wait_done(dut), "Encryption did not finish"
-    ct = await spi_read_result(dut)
+    await simon.write_key(KEY)
+    await simon.write_block(PLAINTEXT)
+    await simon.encrypt()
+    assert await simon.wait_done(), "Encryption did not finish"
+    ct = await simon.read_result()
     dut._log.info(f"Ciphertext: 0x{ct:08X}")
 
     # Decrypt (key still in registers, just reload block)
-    await spi_write_block(dut, ct)
-    await spi_decrypt(dut)
-    assert await wait_done(dut), "Decryption did not finish"
-    pt = await spi_read_result(dut)
+    await simon.write_block(ct)
+    await simon.decrypt()
+    assert await simon.wait_done(), "Decryption did not finish"
+    pt = await simon.read_result()
     dut._log.info(f"Decrypted:  0x{pt:08X}  (expected 0x{PLAINTEXT:08X})")
 
     assert pt == PLAINTEXT, f"Roundtrip failed: 0x{pt:08X} != 0x{PLAINTEXT:08X}"
@@ -260,7 +242,7 @@ async def test_roundtrip(dut):
 @cocotb.test()
 async def test_random_encrypt_decrypt(dut):
     """Validate random encrypt/decrypt operations against simon_32_64_gold reference model."""
-    await init_dut(dut)
+    simon = await init_dut(dut)
     dut._log.info("=== Random encrypt/decrypt with reference model ===")
 
     NUM_ITERATIONS = 5
@@ -277,21 +259,21 @@ async def test_random_encrypt_decrypt(dut):
         )
 
         # --- Encrypt and compare to gold model ---
-        await spi_write_key(dut, key)
-        await spi_write_block(dut, plaintext)
-        await spi_encrypt(dut)
-        assert await wait_done(dut), f"[{iteration}] Encryption did not finish"
-        ct = await spi_read_result(dut)
+        await simon.write_key(key)
+        await simon.write_block(plaintext)
+        await simon.encrypt()
+        assert await simon.wait_done(), f"[{iteration}] Encryption did not finish"
+        ct = await simon.read_result()
         assert ct == expected_ct, (
             f"[{iteration}] Encrypt mismatch: 0x{ct:08X} != 0x{expected_ct:08X}"
         )
 
         # --- Decrypt ciphertext and verify we recover plaintext ---
-        await spi_write_key(dut, key)
-        await spi_write_block(dut, ct)
-        await spi_decrypt(dut)
-        assert await wait_done(dut), f"[{iteration}] Decryption did not finish"
-        pt = await spi_read_result(dut)
+        await simon.write_key(key)
+        await simon.write_block(ct)
+        await simon.decrypt()
+        assert await simon.wait_done(), f"[{iteration}] Decryption did not finish"
+        pt = await simon.read_result()
         assert pt == plaintext, (
             f"[{iteration}] Decrypt mismatch: 0x{pt:08X} != 0x{plaintext:08X}"
         )
